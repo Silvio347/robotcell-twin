@@ -80,7 +80,7 @@ function ZGauge({ robot, z, x, y }: { robot: RobotId; z: number; x: number; y: n
       <rect x={x - 3} y={y} width={6} height={h} rx={3} className="svg-progress-track" />
       <circle cx={x} cy={y + h * (1 - k)} r={5} className="svg-tool" />
       <text x={x} y={y - 6} textAnchor="middle" className="svg-small">
-        Z {z.toFixed(0)}
+        Z {z.toFixed(0)} mm
       </text>
     </g>
   );
@@ -235,7 +235,7 @@ export function CellView2D({ io, stale, now }: { io: PlcIoSnapshot | null; stale
           <g key={id}>
             <Led x={p.x} y={p.y} value={signalValue(data, id)} label="" />
             <text x={p.x} y={p.y + 16} textAnchor="middle" className="svg-small">
-              Sensor
+              {id === 'jakaSensor' ? 'Sensor Jaka' : 'Sensor Stäubli'}
             </text>
           </g>
         );

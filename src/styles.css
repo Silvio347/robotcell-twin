@@ -378,10 +378,6 @@ button.secondary {
   stroke-width: 2;
 }
 
-.svg-robot.is-active {
-  stroke: var(--accent);
-  stroke-width: 3;
-}
 
 .svg-conveyor {
   fill: #232f3c;
