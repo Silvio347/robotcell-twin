@@ -1,16 +1,60 @@
-// Top-down schematic of the cell driven only by PLC I/O.
+// Top-down schematic of the cell driven by PLC I/O. Arm poses come from live
+// joints when available, otherwise from the PLC-based estimate.
 // Positions are placeholders: adjust them to the real layout once the cell
-// is measured/photographed (all coordinates are in SVG units of the viewBox).
+// is measured (all coordinates are in SVG units of the viewBox).
 
+import { useRobotView } from '../hooks/useRobotView';
 import { pointsOfRobot, type RobotId, type SignalId } from '../model/cell';
 import { isEmergencyActive, signalValue, type PlcIoSnapshot } from '../model/messages';
 
 const VIEW = { w: 800, h: 440 };
 
-const ROBOT_POS: Record<RobotId, { x: number; y: number; name: string }> = {
-  staubli: { x: 130, y: 220, name: 'Stäubli' },
-  jaka: { x: 670, y: 220, name: 'Jaka' },
+// `heading` is the direction of J1 = 0 in the drawing (degrees, counter-clockwise
+// from +x): both robots face the conveyor.
+const ROBOT_POS: Record<RobotId, { x: number; y: number; name: string; heading: number }> = {
+  staubli: { x: 130, y: 220, name: 'Stäubli', heading: 0 },
+  jaka: { x: 670, y: 220, name: 'Jaka', heading: 180 },
 };
+
+// Drawing sizes in SVG units, not real link lengths.
+const SCARA_LINKS = { l1: 65, l2: 65 };
+const SCARA_STROKE_MM = 200;
+const JAKA_REACH = 100;
+
+type Point = { x: number; y: number };
+
+function polar(from: Point, deg: number, len: number): Point {
+  const r = (deg * Math.PI) / 180;
+  return { x: from.x + len * Math.cos(r), y: from.y - len * Math.sin(r) };
+}
+
+/** Top view of the arm: SCARA links from J1/J2 (J3 shown as tool size), Jaka as its J1 direction. */
+function Arm({ robot, joints }: { robot: RobotId; joints: readonly number[] }) {
+  const { x, y, heading } = ROBOT_POS[robot];
+  const base = { x, y };
+  const j = (i: number) => joints[i] ?? 0;
+
+  if (robot === 'staubli') {
+    const elbow = polar(base, heading + j(0), SCARA_LINKS.l1);
+    const tool = polar(elbow, heading + j(0) + j(1), SCARA_LINKS.l2);
+    const down = Math.min(Math.max(j(2) / SCARA_STROKE_MM, 0), 1);
+    return (
+      <g>
+        <polyline points={`${base.x},${base.y} ${elbow.x},${elbow.y} ${tool.x},${tool.y}`} className="svg-arm" />
+        <circle cx={elbow.x} cy={elbow.y} r={6} className="svg-joint" />
+        <circle cx={tool.x} cy={tool.y} r={9 - 5 * down} className="svg-tool" />
+      </g>
+    );
+  }
+
+  const tool = polar(base, heading + j(0), JAKA_REACH);
+  return (
+    <g>
+      <line x1={base.x} y1={base.y} x2={tool.x} y2={tool.y} className="svg-arm" />
+      <circle cx={tool.x} cy={tool.y} r={7} className="svg-tool" />
+    </g>
+  );
+}
 
 const CONVEYORS: { id: SignalId; y: number; label: string; dir: 1 | -1 }[] = [
   { id: 'conveyorStaubliToJaka', y: 165, label: 'Conveyor Stäubli → Jaka', dir: 1 },
@@ -33,19 +77,39 @@ function Led({ x, y, value, label }: { x: number; y: number; value: boolean | nu
   );
 }
 
-function Robot({ robot, io }: { robot: RobotId; io: PlcIoSnapshot | null }) {
+function Robot({ robot, io, now }: { robot: RobotId; io: PlcIoSnapshot | null; now: number }) {
   const { x, y, name } = ROBOT_POS[robot];
+  const { joints, estimate } = useRobotView(robot, now);
   const fromRobot = pointsOfRobot(robot, 'di'); // robot DO -> PLC
   const toRobot = pointsOfRobot(robot, 'do'); // PLC -> robot DI
   const anyActive = [...fromRobot, ...toRobot].some((p) => signalValue(io, p.id));
   const ledX = x - 55;
+  const barWidth = 120;
 
   return (
     <g>
-      <circle cx={x} cy={y} r={55} className={`svg-robot ${anyActive ? 'is-active' : ''}`} />
-      <text x={x} y={y + 5} textAnchor="middle" className="svg-title">
+      <text x={x} y={y + 44} textAnchor="middle" className="svg-title">
         {name}
       </text>
+      {estimate && (
+        <g>
+          <text x={x} y={y + 62} textAnchor="middle" className="svg-phase">
+            {estimate.phase}
+          </text>
+          <rect x={x - barWidth / 2} y={y + 70} width={barWidth} height={4} rx={2} className="svg-progress-track" />
+          <rect
+            x={x - barWidth / 2}
+            y={y + 70}
+            width={barWidth * estimate.progress}
+            height={4}
+            rx={2}
+            className="svg-progress"
+          />
+        </g>
+      )}
+      {/* Arm last so it stays visible when it swings over the labels. */}
+      <circle cx={x} cy={y} r={18} className={`svg-robot ${anyActive ? 'is-active' : ''}`} />
+      {joints && <Arm robot={robot} joints={joints} />}
 
       <text x={ledX} y={40} className="svg-caption">
         Robot → PLC
@@ -64,7 +128,7 @@ function Robot({ robot, io }: { robot: RobotId; io: PlcIoSnapshot | null }) {
   );
 }
 
-export function CellView2D({ io, stale }: { io: PlcIoSnapshot | null; stale: boolean }) {
+export function CellView2D({ io, stale, now }: { io: PlcIoSnapshot | null; stale: boolean; now: number }) {
   const data = stale ? null : io;
   const emergency = isEmergencyActive(data);
 
@@ -102,8 +166,8 @@ export function CellView2D({ io, stale }: { io: PlcIoSnapshot | null; stale: boo
         Sensor
       </text>
 
-      <Robot robot="staubli" io={data} />
-      <Robot robot="jaka" io={data} />
+      <Robot robot="staubli" io={data} now={now} />
+      <Robot robot="jaka" io={data} now={now} />
 
       {emergency && (
         <text x={VIEW.w / 2} y={VIEW.h - 24} textAnchor="middle" className="svg-emergency">

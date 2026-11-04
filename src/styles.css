@@ -246,6 +246,72 @@ button.secondary {
   opacity: 0.4;
 }
 
+.robot + .robot {
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.phase {
+  margin: 0 0 0.3rem;
+  font-size: 0.85rem;
+}
+
+.phase.is-stopped {
+  color: var(--warn);
+}
+
+.progress {
+  height: 4px;
+  background: var(--off);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progress > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.small {
+  font-size: 0.75rem;
+  margin: 0.4rem 0 0;
+}
+
+.svg-arm {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.85;
+}
+
+.svg-joint {
+  fill: #121a22;
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.svg-tool {
+  fill: var(--warn);
+}
+
+.svg-phase {
+  fill: var(--text);
+  font-size: 12px;
+}
+
+.svg-progress-track {
+  fill: var(--off);
+}
+
+.svg-progress {
+  fill: var(--accent);
+}
+
 /* 2D cell view */
 .cell-view {
   width: 100%;

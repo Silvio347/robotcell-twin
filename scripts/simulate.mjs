@@ -22,12 +22,11 @@ if (!url) {
 const topics = {
   io: `${prefix}/plc/io`,
   status: `${prefix}/source/status`,
-  jaka: `${prefix}/jaka/state`,
-  staubli: `${prefix}/staubli/state`,
 };
 
 // Same cycle as the in-browser demo (src/sim/demo.ts), which follows NewProgram
-// in plc/ProjetoFinalRobotica. Keep both in sync.
+// in plc/ProjetoFinalRobotica. Keep both in sync. Only PLC I/O is published,
+// like the real bridge: the website estimates robot motion from it.
 // Channel numbers from Table I (1-based). Emergency (DI12) is TRUE while safe.
 const DI = { jakaDo7: 1, staubliSensor: 9, jakaSensor: 10, emergency: 12 };
 const DO = { jakaDi3: 1, jakaDi2: 2, staubliDi12: 5, staubliDi13: 6, convJakaToStaubli: 12 };
@@ -36,12 +35,12 @@ const DO = { jakaDi3: 1, jakaDi2: 2, staubliDi12: 5, staubliDi13: 6, convJakaToS
 const HOLD = [DO.jakaDi2, DO.staubliDi13];
 
 const CYCLE = [
-  { ms: 1500, di: [], do: [DO.jakaDi3] }, // Etapa 0 -> 1: Jaka may place
-  { ms: 1000, di: [DI.jakaSensor], do: [DO.jakaDi3] }, // part detected at Jaka
-  { ms: 500, di: [DI.jakaSensor, DI.jakaDo7], do: [DO.jakaDi3] }, // Jaka done
-  { ms: 2500, di: [], do: [DO.convJakaToStaubli] }, // Etapa 2: conveyor running
+  { ms: 4000, di: [], do: [DO.jakaDi3] }, // Etapa 0 -> 1: Jaka fetches a part
+  { ms: 800, di: [DI.jakaSensor], do: [DO.jakaDi3] }, // part on the conveyor
+  { ms: 500, di: [DI.jakaSensor, DI.jakaDo7], do: [DO.convJakaToStaubli] }, // Jaka done: PLC clears DI3, starts conveyor
+  { ms: 2500, di: [], do: [DO.convJakaToStaubli] }, // Etapa 2: part travelling
   { ms: 1000, di: [DI.staubliSensor], do: [DO.staubliDi12] }, // Stäubli may pick (1 s pulse)
-  { ms: 1500, di: [DI.staubliSensor], do: [] }, // Stäubli picking
+  { ms: 1500, di: [DI.staubliSensor], do: [] }, // Stäubli picking, part leaves the sensor at the end
 ];
 
 function channels(active, always = []) {
@@ -83,23 +82,15 @@ client.on('connect', () => {
   nextStep();
 
   timers.push(setInterval(publishIo, 500));
-
-  timers.push(
-    setInterval(() => {
-      const t = Date.now() / 1000;
-      const wave = (amp, speed, phase = 0) => Number((amp * Math.sin(t * speed + phase)).toFixed(2));
-      const staubli = [wave(90, 0.5), wave(30, 0.7, 1), 90 + wave(20, 0.9), 0, wave(45, 1.1), 0];
-      const jaka = [wave(120, 0.4), 90 + wave(25, 0.6), wave(40, 0.8, 2), wave(60, 1), 90, wave(90, 0.5)];
-      client.publish(topics.staubli, JSON.stringify({ ts: Date.now(), joints: staubli, mode: 'sim' }));
-      client.publish(topics.jaka, JSON.stringify({ ts: Date.now(), joints: jaka, mode: 'sim' }));
-    }, 200),
-  );
 });
 
 client.on('error', (err) => console.error('[sim] MQTT error:', err.message));
 
 function shutdown() {
-  timers.forEach(clearInterval);
+  timers.forEach((t) => {
+    clearTimeout(t);
+    clearInterval(t);
+  });
   timers = [];
   client.publish(topics.status, 'offline', { retain: true, qos: 1 }, () => client.end(false, () => process.exit(0)));
   setTimeout(() => process.exit(0), 2000).unref();

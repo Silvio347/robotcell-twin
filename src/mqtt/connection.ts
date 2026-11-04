@@ -3,6 +3,7 @@
 
 import mqtt, { type MqttClient } from 'mqtt';
 import { parsePlcIo, parseRobotState, parseSourceStatus } from '../model/messages';
+import { ROBOTS } from '../model/robots';
 import { useTwinStore } from '../state/store';
 import { robotFromStateTopic, topics } from './topics';
 
@@ -35,7 +36,7 @@ function handleMessage(topic: string, payload: string): void {
 
   const robot = robotFromStateTopic(topic);
   if (robot) {
-    const state = parseRobotState(payload, now);
+    const state = parseRobotState(payload, now, ROBOTS[robot].joints.length);
     if (state) store.setRobot(robot, state);
     else console.warn(`[mqtt] Ignoring malformed ${robot} state payload`, payload);
   }

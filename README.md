@@ -21,11 +21,15 @@ already match the real cell and which ones are placeholders.
 | `Emergencia` | PLC | **Simulated**, always safe (TRUE). Polarity confirmed in the PLC code | Same as above |
 | Unused signals: `Jaka_DO5/DO6/DI1`, `Staubli_DO4–DO7`, `Staubli_DI14/DI15`, `Esteira_StaubliJaka` | PLC | **Simulated**, always off (the program never uses them) | Same as above |
 | `Etapa`, `iContador`, `Ligar` | PLC (program variables) | **Not shown yet** | Bridge sends them, then the website shows them ([step 3](docs/publishing-plan/03-bridge.md)) |
-| Robot joint angles J1–J6 (Stäubli and Jaka) | Robot controllers | **Random**, sine waves with no relation to the real robots | Joints are read from the robot controllers ([architecture](docs/architecture.md)) |
+| Robot axes: Stäubli 4-axis SCARA (J3 in mm), Jaka 6-axis | Cell photos | **Confirmed** type; exact Stäubli model still to check on the nameplate | Already real |
+| Robot phase ("picking part", "returning home", ...) | Estimated from the PLC handshake signals | **Estimated**, exact at each PLC event, timing learned from the cycles seen | Exact for every phase once the unused robot outputs are set in the robot programs ([robot-estimation](docs/robot-estimation.md)) |
+| Robot joint angles | Estimated from the phase + taught poses | **Placeholder poses**, motion between them is interpolated | Real poses copied from the pendants into `src/model/poses.ts`. Live joints from the controllers override the estimate if ever published |
 | Cell layout in the 2D view | Drawing | **Approximate**, positions are placeholders | Adjusted from photos/measurements of the cell |
 
 The PLC only exchanges digital I/O with the robots. It never knows where the
-arms are, so joint angles cannot come from the PLC.
+arms are, but it knows what each robot is doing. The website uses that to
+move the robots between taught poses: see
+[docs/robot-estimation.md](docs/robot-estimation.md).
 
 ## Requirements
 
@@ -46,7 +50,8 @@ Open the printed URL, then enter a broker username and password, or click
 
 **Run demo without broker** plays the PLC cycle from `NewProgram` inside the
 browser (`src/sim/demo.ts`): Jaka places a part, the conveyor carries it to
-the Stäubli, the Stäubli picks it. No MQTT is involved.
+the Stäubli, the Stäubli picks it. No MQTT is involved. Only PLC I/O is
+generated; the robot motion comes from the same estimator used with real data.
 
 ## MQTT simulator
 

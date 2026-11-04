@@ -63,7 +63,12 @@ Last Will to `offline` (retained) so the website knows when the source drops.
 { "ts": 1793790000000, "joints": [0.0, 90.0, -45.0, 0.0, 30.0, 0.0], "mode": "auto" }
 ```
 
-- `joints`: 1 to 7 joint positions in **degrees**, base to flange.
-- `mode` (optional): free text shown next to the robot name.
+- `joints`: joint positions base to flange. The count must match the robot,
+  otherwise the message is dropped:
+  - `jaka`: 6 values, degrees.
+  - `staubli` (4-axis SCARA): 4 values, `[J1 °, J2 °, J3 mm, J4 °]`.
+- `mode` (optional): free text.
 
-This data does not exist in the PLC I/O. It is the input for the 3D view.
+Nothing publishes these topics yet. Until something does, the website
+estimates the joints from the PLC I/O ([robot-estimation.md](robot-estimation.md)).
+Fresh live joints always take priority over the estimate.
