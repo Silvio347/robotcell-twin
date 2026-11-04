@@ -12,10 +12,9 @@ so a 3D arm would have nothing real to move.
 - **Now (2D):** an SVG schematic driven by the PLC I/O. It is useful as soon
   as the PLC publishes, and it stays useful later as the "signals" view.
 - **Later (3D):** add a Three.js scene (React Three Fiber). Two ways to move the arms:
-  1. **Taught points + PLC steps (approximate):** take the waypoints from the
-     Stäubli (VAL3) and Jaka programs, and play the matching motion when the
-     PLC handshake says a robot is moving. The poses are real; the timing in
-     between is interpolated.
+  1. **Taught points + PLC steps (approximate):** implemented in
+     `src/estimator/`, see [robot-estimation.md](robot-estimation.md). It
+     already drives the 2D arms; the 3D view can reuse the same joints.
   2. **Live joints (exact):** read the joint positions from the robot
      controllers and publish `robotcell/<robot>/state`. The Jaka controller
      has a TCP/IP interface that reports joint positions, and a VAL3 program
@@ -57,6 +56,8 @@ The website uses its own subscribe-only credential (see
 | `src/model/cell.ts` | Cell I/O map (Table I) |
 | `src/model/messages.ts` | Payload parsing and validation. Malformed messages are dropped |
 | `src/mqtt/` | Topic names and the single broker connection (subscribe only) |
+| `src/model/robots.ts`, `src/model/poses.ts` | Robot axes/units and taught poses |
+| `src/estimator/` | Robot phase and joints estimated from PLC I/O |
 | `src/sim/demo.ts` | In-browser demo cycle (no broker) |
 | `src/state/store.ts` | App state (zustand) |
 | `src/components/` | 2D cell view, I/O table, joint panel, connect form, status bar |
