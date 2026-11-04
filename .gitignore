@@ -1,0 +1,23 @@
+node_modules
+dist
+.env
+.env.local
+.env.*.local
+.netlify
+.firebase
+*.log
+
+# Automation Studio build output (regenerated on every build)
+plc/**/Temp/
+plc/**/Binaries/
+plc/**/Diagnosis/
+
+# Original ProjetoPadrao template archive (56 MB, available on Teams)
+plc/**/ProjetoPadrao.zip
+
+# Per-user Automation Studio settings (contain classmates' user names)
+plc/**/*.set
+
+# B&R Automation Runtime binaries stored in the project (proprietary, 32 MB).
+# See docs/plc-program.md, "Files kept out of git".
+plc/**/AS/

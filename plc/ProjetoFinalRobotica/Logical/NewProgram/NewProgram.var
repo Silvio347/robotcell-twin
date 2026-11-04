@@ -1,0 +1,48 @@
+(********************************************************************
+ * COPYRIGHT --  
+ ********************************************************************
+ * Program: NewProgram
+ * File: NewProgram.var
+ * Author: supervisorio
+ * Created: May 29, 2026
+ ********************************************************************
+ * Local variables of program NewProgram
+ ********************************************************************)
+VAR
+	Emergencia : BOOL;
+	Jaka_DO7 : BOOL;
+	Jaka_DO6 : BOOL;
+	Jaka_DO5 : BOOL;
+	Jaka_DI3 : BOOL;
+	Jaka_DI2 : BOOL;
+	Jaka_DI1 : BOOL;
+	Staubli_DO4 : BOOL;
+	Staubli_DO5 : BOOL;
+	Staubli_DO6 : BOOL;
+	Staubli_DO7 : BOOL;
+	Staubli_DI12 : BOOL;
+	Staubli_DI13 : BOOL;
+	Staubli_DI14 : BOOL;
+	Staubli_DI15 : BOOL;
+	Esteira_StaubliJaka : BOOL;
+	Esteira_JakaStaubli : BOOL;
+	Ligar : BOOL;
+	Etapa : INT;
+	Sensor_Jaka : BOOL;
+	Sensor_Staubli : BOOL;
+	ABC : BOOL;
+	Timer_Staubli : TON;
+	bRet1 : INT;
+	iContador : INT;
+	bRet2 : INT;
+	bRet3 : INT;
+	bRet4 : INT;
+	bRet5 : INT;
+	bRet6 : INT;
+	bRet7 : INT;
+	bRet8 : INT;
+	bRet9 : INT;
+	bRet10 : INT;
+	bRet11 : INT;
+	bRet12 : INT;
+END_VAR

@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<BR.AS.HardwareTopology Version="0.0.0.1">
+  <Modules>
+    <Module Name="4PP481_1043_B5" Type="4PP481.1043-B5" X="100" Y="-258.599976" />
+    <Module Name="3IF791.9" Type="3IF791.9" X="294.099976" Y="-248.599976" />
+    <Module Name="X20BM01" Type="X20BM01" X="398" Y="-130" />
+    <Module Name="X20BR9300" Type="X20BR9300" X="398" Y="-130" />
+    <Module Name="X20TB12" Type="X20TB12" X="398" Y="-103" />
+    <Module Name="X20BM11" Type="X20BM11" X="411" Y="-130" />
+    <Module Name="X20DI9371" Type="X20DI9371" X="411" Y="-130" />
+    <Module Name="X20TB12a" Type="X20TB12" X="411" Y="-103" />
+    <Module Name="X20BM11a" Type="X20BM11" X="424" Y="-130" />
+    <Module Name="X20DO9322" Type="X20DO9322" X="424" Y="-130" />
+    <Module Name="X20TB12b" Type="X20TB12" X="424" Y="-103" />
+    <Module Name="X20BM11b" Type="X20BM11" X="437" Y="-130" />
+    <Module Name="X20AI4622" Type="X20AI4622" X="437" Y="-130" />
+    <Module Name="X20TB12c" Type="X20TB12" X="437" Y="-103" />
+    <Module Name="X20cBM11" Type="X20cBM11" X="450" Y="-130" />
+    <Module Name="X20cAO4622" Type="X20cAO4622" X="450" Y="-130" />
+    <Module Name="X20TB12d" Type="X20TB12" X="450" Y="-103" />
+  </Modules>
+  <Links />
+  <RedundancyLinks />
+</BR.AS.HardwareTopology>

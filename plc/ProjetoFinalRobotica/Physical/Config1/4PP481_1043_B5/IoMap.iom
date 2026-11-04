@@ -1,0 +1,30 @@
+(********************************************************************
+ * COPYRIGHT --  
+ ********************************************************************
+ * File: IoMap.iom
+ * Author: supervisorio
+ * Created: February 20, 2025
+ ********************************************************************
+ * IO mapping file
+ ********************************************************************)
+VAR_CONFIG
+	::NewProgram:Jaka_DI3 AT %QX."X20DO9322".DigitalOutput01;
+	::NewProgram:Jaka_DI2 AT %QX."X20DO9322".DigitalOutput02;
+	::NewProgram:Jaka_DI1 AT %QX."X20DO9322".DigitalOutput03;
+	::NewProgram:Staubli_DI12 AT %QX."X20DO9322".DigitalOutput05;
+	::NewProgram:Staubli_DI13 AT %QX."X20DO9322".DigitalOutput06;
+	::NewProgram:Staubli_DI14 AT %QX."X20DO9322".DigitalOutput07;
+	::NewProgram:Staubli_DI15 AT %QX."X20DO9322".DigitalOutput08;
+	::NewProgram:Esteira_StaubliJaka AT %QX."X20DO9322".DigitalOutput11;
+	::NewProgram:Esteira_JakaStaubli AT %QX."X20DO9322".DigitalOutput12;
+	::NewProgram:Jaka_DO7 AT %IX."X20DI9371".DigitalInput01;
+	::NewProgram:Jaka_DO6 AT %IX."X20DI9371".DigitalInput02;
+	::NewProgram:Jaka_DO5 AT %IX."X20DI9371".DigitalInput03;
+	::NewProgram:Staubli_DO4 AT %IX."X20DI9371".DigitalInput05;
+	::NewProgram:Staubli_DO5 AT %IX."X20DI9371".DigitalInput06;
+	::NewProgram:Staubli_DO6 AT %IX."X20DI9371".DigitalInput07;
+	::NewProgram:Staubli_DO7 AT %IX."X20DI9371".DigitalInput08;
+	::NewProgram:Sensor_Staubli AT %IX."X20DI9371".DigitalInput09;
+	::NewProgram:Sensor_Jaka AT %IX."X20DI9371".DigitalInput10;
+	::NewProgram:Emergencia AT %IX."X20DI9371".DigitalInput12;
+END_VAR

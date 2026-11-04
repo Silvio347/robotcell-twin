@@ -1,0 +1,344 @@
+:root {
+  --bg: #0f1419;
+  --panel: #182029;
+  --border: #2a3644;
+  --text: #e6edf3;
+  --muted: #8b98a5;
+  --on: #3fb950;
+  --off: #3a4552;
+  --warn: #d29922;
+  --danger: #f85149;
+  --accent: #58a6ff;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+h1 {
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+h2 {
+  font-size: 1rem;
+  margin: 0 0 0.75rem;
+}
+
+h3 {
+  font-size: 0.9rem;
+  margin: 0.5rem 0 0.25rem;
+}
+
+code {
+  background: var(--bg);
+  padding: 0 0.3em;
+  border-radius: 4px;
+}
+
+.app {
+  padding: 1rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.error {
+  color: var(--danger);
+  margin: 0;
+}
+
+/* Connect form */
+.connect {
+  max-width: 460px;
+  margin: 3rem auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.connect label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+input {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem;
+  font: inherit;
+}
+
+button {
+  background: var(--accent);
+  color: #0b0f14;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+/* Status bar */
+.status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.pill {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+}
+
+.pill-connected,
+.pill-source-online {
+  border-color: var(--on);
+  color: var(--on);
+}
+
+.pill-connecting,
+.pill-reconnecting,
+.pill-demo,
+.pill-stale,
+.pill-source-simulated {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.pill-source-offline {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* I/O table */
+.io-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.io-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.io-table caption {
+  text-align: left;
+  color: var(--muted);
+  padding-bottom: 0.3rem;
+}
+
+.io-table td {
+  padding: 0.15rem 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.io-table .ch {
+  color: var(--muted);
+  width: 1.5rem;
+}
+
+.io-table .spare {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.led {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+}
+
+.led-on {
+  background: var(--on);
+  box-shadow: 0 0 6px var(--on);
+}
+
+.led-off {
+  background: var(--off);
+}
+
+.led-unknown {
+  background: transparent;
+  border: 1px dashed var(--muted);
+}
+
+/* Robot joints */
+.joints {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+}
+
+.joints.is-stale {
+  opacity: 0.4;
+}
+
+/* 2D cell view */
+.cell-view {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.svg-frame {
+  fill: #121a22;
+  stroke: var(--border);
+  stroke-width: 2;
+}
+
+.svg-frame.is-emergency {
+  stroke: var(--danger);
+  stroke-width: 6;
+}
+
+.svg-robot {
+  fill: #1f2a36;
+  stroke: var(--muted);
+  stroke-width: 2;
+}
+
+.svg-robot.is-active {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+
+.svg-conveyor {
+  fill: #232f3c;
+  stroke: var(--muted);
+}
+
+.svg-belt {
+  stroke: var(--muted);
+  stroke-width: 3;
+  stroke-dasharray: 10 8;
+}
+
+.svg-belt.run-forward {
+  stroke: var(--on);
+  animation: belt 0.6s linear infinite;
+}
+
+.svg-belt.run-backward {
+  stroke: var(--on);
+  animation: belt 0.6s linear infinite reverse;
+}
+
+@keyframes belt {
+  to {
+    stroke-dashoffset: -18;
+  }
+}
+
+.svg-led-on {
+  fill: var(--on);
+}
+
+.svg-led-off {
+  fill: var(--off);
+}
+
+.svg-led-unknown {
+  fill: transparent;
+  stroke: var(--muted);
+  stroke-dasharray: 2 2;
+}
+
+.svg-title {
+  fill: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.svg-caption {
+  fill: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.svg-small {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+.svg-emergency {
+  fill: var(--danger);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.svg-stale {
+  fill: rgba(15, 20, 25, 0.7);
+}
