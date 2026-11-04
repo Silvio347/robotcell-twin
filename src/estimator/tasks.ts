@@ -15,6 +15,8 @@ import type { TaskDef } from './engine';
 export const TASKS: Record<RobotId, TaskDef> = {
   jaka: {
     robot: 'jaka',
+    // Cobot joints, deg/s (nominal, for timing the moves only).
+    jointSpeeds: [90, 90, 90, 120, 120, 120],
     segments: [
       {
         // PLC step 0 sets Jaka DI3 ("may place").
@@ -28,6 +30,7 @@ export const TASKS: Record<RobotId, TaskDef> = {
         label: 'Picking part',
         path: [J.abovePart, J.pickPart, J.abovePart],
         defaultMs: 3000,
+        grip: { at: 1, closed: true },
         endsOn: [{ signal: 'jakaDo5', when: 'rise', optional: true }],
       },
       {
@@ -41,6 +44,7 @@ export const TASKS: Record<RobotId, TaskDef> = {
         label: 'Releasing part',
         path: [J.placeConveyor],
         defaultMs: 500,
+        grip: { at: 0, closed: false },
         endsOn: [{ signal: 'jakaDo7', when: 'rise' }],
       },
       {
@@ -53,6 +57,10 @@ export const TASKS: Record<RobotId, TaskDef> = {
   },
   staubli: {
     robot: 'staubli',
+    // J1, J2, J4 in deg/s and J3 in mm/s (nominal, for timing the moves only).
+    jointSpeeds: [300, 300, 400, 600],
+    // Lift J3 to the top before J1/J2/J4 move, like VAL3 approach points.
+    travelAxis: { axis: 2, safe: 0 },
     segments: [
       {
         // PLC step 2 sets Stäubli DI12 ("may pick") once the part is at the sensor.
@@ -67,6 +75,7 @@ export const TASKS: Record<RobotId, TaskDef> = {
         label: 'Picking part from conveyor',
         path: [S.abovePick, S.pick, S.abovePick],
         defaultMs: 2500,
+        grip: { at: 1, closed: true },
         endsOn: [
           { signal: 'staubliSensor', when: 'fall' },
           { signal: 'staubliDo4', when: 'rise', optional: true },
@@ -76,6 +85,7 @@ export const TASKS: Record<RobotId, TaskDef> = {
         label: 'Placing part',
         path: [S.abovePlace, S.place, S.abovePlace],
         defaultMs: 3000,
+        grip: { at: 1, closed: false },
         endsOn: [{ signal: 'staubliDo5', when: 'rise', optional: true }],
       },
       {

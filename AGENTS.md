@@ -13,8 +13,8 @@ Start with `docs/README.md` for the full picture.
 
 | Path | Content |
 |---|---|
-| `src/model/` | I/O map (`cell.ts`), robot axes (`robots.ts`), taught poses (`poses.ts`), payload parsing (`messages.ts`) |
-| `src/estimator/` | Robot phase and joints estimated from PLC I/O (pure engine + task definitions + store runner) |
+| `src/model/` | I/O map (`cell.ts`), robot axes (`robots.ts`), cell layout in mm (`layout.ts`), forward/inverse kinematics (`kinematics.ts`), taught poses (`poses.ts`), payload parsing (`messages.ts`) |
+| `src/estimator/` | Robot phase, joints and gripper (`engine.ts`, `tasks.ts`), part tracking (`parts.ts`), store runner (`runner.ts`) |
 | `src/mqtt/` | Topics and the single broker connection (subscribe only) |
 | `src/sim/demo.ts` | In-browser demo cycle |
 | `src/components/`, `src/hooks/` | UI |
@@ -37,7 +37,9 @@ Start with `docs/README.md` for the full picture.
 - Never commit broker passwords or hosts. `VITE_*` variables are public;
   real values go in `.env.local`, which is ignored.
 - Validate every incoming payload in `src/model/messages.ts`.
-- Keep the estimator engine (`src/estimator/engine.ts`) pure: no store, no timers.
+- Keep `src/estimator/engine.ts` and `parts.ts` pure: no store, no timers.
+- The IK in `src/model/kinematics.ts` exists only to build placeholder poses;
+  real poses are plain numbers copied from the pendants.
 - Keep these in sync when they change:
   - `src/sim/demo.ts` and `scripts/simulate.mjs` (same cycle).
   - `src/model/cell.ts`, `IoMap.iom` and the table in `docs/mqtt-contract.md`.
@@ -45,8 +47,8 @@ Start with `docs/README.md` for the full picture.
   - Signal events in `src/estimator/tasks.ts` and `docs/robot-estimation.md`.
   - The "What is real and what is simulated" table in `README.md` whenever a
     value moves from simulated/estimated to real.
-- Values not read from the real cell (poses, layout) must be marked as
-  placeholders in code and docs.
+- Values not read from the real cell (poses, layout, link lengths) must be
+  marked as placeholders in code and docs.
 
 ## PLC project
 

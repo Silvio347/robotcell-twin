@@ -6,7 +6,8 @@ import type { RobotId } from '../model/cell';
 import type { PlcIoSnapshot } from '../model/messages';
 import { ROBOT_IDS } from '../model/robots';
 import { useTwinStore } from '../state/store';
-import { estimate, initialState, update, type EstimatorState } from './engine';
+import { estimate, initialState, update, type EstimatorState, type RobotEstimate } from './engine';
+import { initialParts, partsEstimate, updateParts, type PartsState } from './parts';
 import { TASKS } from './tasks';
 
 const TICK_MS = 100;
@@ -17,20 +18,33 @@ function freshStates(now: number): Record<RobotId, EstimatorState> {
 
 export function startEstimator(): () => void {
   let states = freshStates(Date.now());
+  let parts: PartsState = initialParts(Date.now());
   let prevIo: PlcIoSnapshot | null = null;
 
   const run = (io: PlcIoSnapshot | null, prev: PlcIoSnapshot | null) => {
     const now = Date.now();
     // A new data source starts from scratch, including learned timings.
-    if (!io) states = freshStates(now);
+    if (!io) {
+      states = freshStates(now);
+      parts = initialParts(now);
+    }
     const fresh = io && now - io.receivedAt <= config.staleAfterMs ? io : null;
     for (const robot of ROBOT_IDS) {
       states[robot] = update(TASKS[robot], states[robot], fresh, fresh ? prev : null, now);
     }
-    useTwinStore.getState().setEstimates({
+    const estimates: Record<RobotId, RobotEstimate> = {
       jaka: estimate(TASKS.jaka, states.jaka, now),
       staubli: estimate(TASKS.staubli, states.staubli, now),
-    });
+    };
+    parts = updateParts(
+      parts,
+      fresh,
+      fresh ? prev : null,
+      { jaka: estimates.jaka.holding, staubli: estimates.staubli.holding },
+      { jaka: estimates.jaka.stoppedReason !== null, staubli: estimates.staubli.stoppedReason !== null },
+      now,
+    );
+    useTwinStore.getState().setEstimates(estimates, partsEstimate(parts));
   };
 
   const unsubscribe = useTwinStore.subscribe((state, previous) => {

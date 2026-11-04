@@ -8,6 +8,10 @@
 // Segments that end on an "optional" event (a robot output the current robot
 // programs do not set) advance on time alone until that signal is seen once.
 //
+// Inside a segment, each move gets a share of the time proportional to how
+// long it takes at the robot's joint speeds, and a SCARA lifts its vertical
+// axis before travelling. The gripper state follows the `grip` points.
+//
 // Everything here is pure: state in, state out. src/estimator/runner.ts
 // feeds it with the store.
 
@@ -26,18 +30,31 @@ export interface EventDef {
 
 export interface SegmentDef {
   label: string;
-  /** Poses visited in order, at equal time shares. Must not be empty. */
+  /**
+   * Poses visited in order. Must not be empty. The segment time is split
+   * between the moves in proportion to how long each move takes at the
+   * robot's joint speeds.
+   */
   path: readonly Pose[];
   defaultMs: number;
   /** Any of these ends the segment. */
   endsOn: readonly EventDef[];
   /** False for segments whose length depends on the rest of the cell (waiting). */
   learn?: boolean;
+  /** The gripper closes (or opens) when the robot reaches `path[at]`. */
+  grip?: { at: number; closed: boolean };
 }
 
 export interface TaskDef {
   robot: RobotId;
   segments: readonly SegmentDef[];
+  /** Nominal speed of each joint (units per second), used to time the moves. */
+  jointSpeeds: readonly number[];
+  /**
+   * Axis that must reach `safe` before any other joint moves (SCARA: lift J3
+   * before travelling), like the approach points in a pick-and-place program.
+   */
+  travelAxis?: { axis: number; safe: number };
 }
 
 export interface EstimatorState {
@@ -52,14 +69,20 @@ export interface EstimatorState {
   /** Optional signals seen at least once: from then on they are waited for. */
   seenOptional: readonly SignalId[];
   stoppedReason: string | null;
+  /** Gripper state when the robot was frozen. */
+  stoppedHolding: boolean;
   cycles: number;
 }
 
 export interface RobotEstimate {
   phase: string;
+  /** Index of the current segment in the task. */
+  segment: number;
   progress: number;
   waitingFor: string | null;
   joints: number[];
+  /** True while the gripper is estimated to hold a part. */
+  holding: boolean;
   stoppedReason: string | null;
   cycles: number;
 }
@@ -127,6 +150,7 @@ export function initialState(task: TaskDef, now: number): EstimatorState {
     chainStart: now,
     seenOptional: [],
     stoppedReason: 'No PLC data',
+    stoppedHolding: false,
     cycles: 0,
   };
 }
@@ -136,17 +160,81 @@ function progressOf(s: EstimatorState, now: number): number {
   return clamp((now - s.startedAt) / dur, 0, 1);
 }
 
-export function jointsAt(task: TaskDef, s: EstimatorState, now: number): number[] {
+interface Waypoint {
+  joints: readonly number[];
+  /** Index in the segment path, or null for an inserted lift point. */
+  pathIndex: number | null;
+  /** Fraction of the segment time at which this point is reached. */
+  at: number;
+}
+
+/** Time a move takes at the nominal joint speeds, plus a short settle. */
+function moveSeconds(task: TaskDef, a: readonly number[], b: readonly number[]): number {
+  const slowest = a.reduce((m, v, i) => Math.max(m, Math.abs((b[i] ?? v) - v) / (task.jointSpeeds[i] ?? 1)), 0);
+  return slowest > 1e-6 ? slowest + 0.1 : 0;
+}
+
+function needsLift(task: TaskDef, from: readonly number[], to: readonly number[]): boolean {
+  const t = task.travelAxis;
+  if (!t || Math.abs((from[t.axis] ?? t.safe) - t.safe) < 1) return false;
+  return from.some((v, i) => i !== t.axis && Math.abs((to[i] ?? v) - v) > 0.5);
+}
+
+/** Points the robot visits in the current segment, starting where it is. */
+function waypoints(task: TaskDef, s: EstimatorState): Waypoint[] {
   const seg = task.segments[s.index];
-  if (s.stoppedReason || !seg) return [...s.startJoints];
-  const points = [s.startJoints, ...seg.path];
-  const legs = seg.path.length;
-  const t = progressOf(s, now) * legs;
-  const leg = Math.min(Math.floor(t), legs - 1);
-  const k = smoothstep(t - leg);
-  const a = points[leg] ?? [];
-  const b = points[leg + 1] ?? a;
-  return a.map((v, i) => v + ((b[i] ?? v) - v) * k);
+  const points: Omit<Waypoint, 'at'>[] = [{ joints: s.startJoints, pathIndex: null }];
+  seg?.path.forEach((pose, i) => {
+    const from = points[points.length - 1]!.joints;
+    if (needsLift(task, from, pose)) {
+      const lifted = [...from];
+      lifted[task.travelAxis!.axis] = task.travelAxis!.safe;
+      points.push({ joints: lifted, pathIndex: null });
+    }
+    points.push({ joints: pose, pathIndex: i });
+  });
+
+  const times = points.map((p, i) => (i === 0 ? 0 : moveSeconds(task, points[i - 1]!.joints, p.joints)));
+  const total = times.reduce((a, b) => a + b, 0);
+  const legs = points.length - 1;
+  let acc = 0;
+  return points.map((p, i) => {
+    acc += times[i]!;
+    // Equal shares when nothing moves (robot already at every point).
+    return { ...p, at: total > 0 ? acc / total : legs > 0 ? i / legs : 1 };
+  });
+}
+
+export function jointsAt(task: TaskDef, s: EstimatorState, now: number): number[] {
+  if (s.stoppedReason || !task.segments[s.index]) return [...s.startJoints];
+  const pts = waypoints(task, s);
+  const t = progressOf(s, now);
+  const leg = Math.max(1, pts.findIndex((p, i) => i > 0 && t <= p.at));
+  const a = pts[leg - 1]!;
+  const b = pts[leg] ?? a;
+  const span = b.at - a.at;
+  const k = smoothstep(span > 0 ? clamp((t - a.at) / span, 0, 1) : 1);
+  return a.joints.map((v, i) => v + ((b.joints[i] ?? v) - v) * k);
+}
+
+/** Gripper state at the start of each segment, following the grip events of the loop. */
+function holdingAtStart(task: TaskDef): boolean[] {
+  const out: boolean[] = [];
+  let holding = false;
+  for (const seg of task.segments) {
+    out.push(holding);
+    if (seg.grip) holding = seg.grip.closed;
+  }
+  return out;
+}
+
+export function holdingAt(task: TaskDef, s: EstimatorState, now: number): boolean {
+  if (s.stoppedReason) return s.stoppedHolding;
+  const seg = task.segments[s.index];
+  const start = holdingAtStart(task)[s.index] ?? false;
+  if (!seg?.grip) return start;
+  const point = waypoints(task, s).find((p) => p.pathIndex === seg.grip!.at);
+  return point && progressOf(s, now) >= point.at ? seg.grip.closed : start;
 }
 
 /** Moves past segments that only wait for time. */
@@ -216,6 +304,7 @@ export function update(
     return {
       ...s,
       startJoints: jointsAt(task, s, now),
+      stoppedHolding: holdingAt(task, s, now),
       stoppedReason: reason,
       index: 0,
       startedAt: now,
@@ -257,9 +346,11 @@ export function estimate(task: TaskDef, s: EstimatorState, now: number): RobotEs
   const waited = seg?.endsOn.find((e) => isWaitedFor(e, s.seenOptional));
   return {
     phase: s.stoppedReason ?? seg?.label ?? '',
+    segment: s.index,
     progress,
     waitingFor: !s.stoppedReason && progress >= 1 && waited ? eventLabel(waited) : null,
     joints: jointsAt(task, s, now),
+    holding: holdingAt(task, s, now),
     stoppedReason: s.stoppedReason,
     cycles: s.cycles,
   };

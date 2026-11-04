@@ -68,6 +68,7 @@ code {
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+  align-items: start;
   gap: 1rem;
 }
 
@@ -280,10 +281,44 @@ button.secondary {
   margin: 0.4rem 0 0;
 }
 
+.svg-table {
+  fill: #141d26;
+  stroke: var(--border);
+  stroke-dasharray: 4 4;
+}
+
+.svg-reach {
+  fill: none;
+  stroke: var(--border);
+  stroke-dasharray: 3 5;
+}
+
+.svg-area {
+  fill: none;
+  stroke: var(--muted);
+  stroke-dasharray: 4 3;
+}
+
+.svg-part {
+  fill: #e3a33b;
+  stroke: #0b0f14;
+  stroke-width: 1;
+}
+
+.svg-part.is-faded {
+  opacity: 0.35;
+}
+
+.svg-gripper {
+  stroke: var(--text);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
 .svg-arm {
   fill: none;
   stroke: var(--accent);
-  stroke-width: 10;
+  stroke-width: 8;
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: 0.85;
@@ -302,6 +337,13 @@ button.secondary {
 .svg-phase {
   fill: var(--text);
   font-size: 12px;
+}
+
+.svg-halo {
+  paint-order: stroke;
+  stroke: #141d26;
+  stroke-width: 4px;
+  stroke-linejoin: round;
 }
 
 .svg-progress-track {
@@ -336,10 +378,6 @@ button.secondary {
   stroke-width: 2;
 }
 
-.svg-robot.is-active {
-  stroke: var(--accent);
-  stroke-width: 3;
-}
 
 .svg-conveyor {
   fill: #232f3c;
