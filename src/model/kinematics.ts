@@ -132,6 +132,8 @@ function jakaResidual(q: number[], p: Point3): number[] {
 /**
  * Joints that put the Jaka tool flange at `p` (base frame) pointing straight
  * down. Numeric (damped least squares), only used for placeholder poses.
+ * `seed` sets the starting J2..J6 (arm configuration); J1 always starts
+ * pointed at the target.
  */
 export function jakaIkDown(p: Point3, seed: readonly number[] = [0, -90, 90, -90, -90, 0]): number[] {
   const toward = deg(Math.atan2(p.y, p.x)) + 180; // UR-style arms reach along -x at J1 = 0
@@ -153,6 +155,7 @@ export function jakaIkDown(p: Point3, seed: readonly number[] = [0, -90, 90, -90
     q = q.map((v, j) => v + J.reduce((s, row, i) => s + row[j]! * y[i]!, 0));
   }
   const err = Math.hypot(...jakaResidual(q, p).slice(0, 3));
-  if (err > 1) throw new Error(`Jaka cannot reach (${p.x}, ${p.y}, ${p.z}): ${err.toFixed(1)} mm off`);
+  // `!(err <= 1)` also rejects NaN from a diverged solve.
+  if (!(err <= 1)) throw new Error(`Jaka cannot reach (${p.x}, ${p.y}, ${p.z}): ${err.toFixed(1)} mm off`);
   return q.map((v) => ((((v + 180) % 360) + 360) % 360) - 180);
 }
