@@ -26,7 +26,7 @@ export function App() {
         <main className="layout">
           <section className="panel cell-panel">
             <h2>Cell (2D)</h2>
-            <CellView2D io={io} stale={stale} />
+            <CellView2D io={io} stale={stale} now={now} />
           </section>
           <aside className="side">
             <IoTable io={stale ? null : io} />
