@@ -41,6 +41,7 @@ export function startEstimator(): () => void {
       fresh,
       fresh ? prev : null,
       { jaka: estimates.jaka.holding, staubli: estimates.staubli.holding },
+      { jaka: estimates.jaka.stoppedReason !== null, staubli: estimates.staubli.stoppedReason !== null },
       now,
     );
     useTwinStore.getState().setEstimates(estimates, partsEstimate(parts));

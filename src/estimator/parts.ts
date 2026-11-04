@@ -21,6 +21,8 @@ export interface PartsState {
   /** Parts placed by the Stäubli since the data source started. */
   placed: number;
   holding: Record<RobotId, boolean>;
+  /** Robots frozen by E-stop, cell stop or missing data on the previous update. */
+  stopped: Record<RobotId, boolean>;
   lastAt: number;
 }
 
@@ -41,6 +43,7 @@ export function initialParts(now: number): PartsState {
     conveyorOnAt: null,
     placed: 0,
     holding: { jaka: false, staubli: false },
+    stopped: { jaka: false, staubli: false },
     lastAt: now,
   };
 }
@@ -54,11 +57,12 @@ export function updateParts(
   io: PlcIoSnapshot | null,
   prev: PlcIoSnapshot | null,
   holding: Record<RobotId, boolean>,
+  stopped: Record<RobotId, boolean>,
   now: number,
 ): PartsState {
   const dt = Math.max(0, now - state.lastAt);
   let s: PartsState = { ...state, lastAt: now };
-  if (!io) return { ...s, holding };
+  if (!io) return { ...s, holding, stopped };
 
   const conveyor = on(io, 'conveyorJakaToStaubli');
   const rise = (id: Parameters<typeof signalValue>[1]) => on(io, id) && !!prev && !on(prev, id);
@@ -82,9 +86,11 @@ export function updateParts(
   if (s.belt === null && on(io, 'jakaSensor') && !holding.jaka) s.belt = 0;
 
   if (holding.staubli && !state.holding.staubli) s.belt = null;
-  if (!holding.staubli && state.holding.staubli) s.placed += 1;
+  // A gripper that empties because the robot restarts after a stop has not
+  // placed anything: the estimator just reset it to its first segment.
+  if (!holding.staubli && state.holding.staubli && !state.stopped.staubli) s.placed += 1;
 
-  return { ...s, holding };
+  return { ...s, holding, stopped };
 }
 
 export function partsEstimate(s: PartsState): PartsEstimate {
