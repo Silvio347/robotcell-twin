@@ -1,9 +1,10 @@
-// In-browser demo: drives the store with a fake cell cycle, no broker needed.
+// In-browser demo: drives the store with a fake PLC cycle, no broker needed.
 // The sequence follows NewProgram in plc/ProjetoFinalRobotica (Jaka places a
-// part -> conveyor Jaka -> Stäubli -> Stäubli picks). Keep it in sync with
-// scripts/simulate.mjs, which publishes the same cycle over MQTT.
+// part -> conveyor Jaka -> Stäubli -> Stäubli picks). Only PLC I/O is
+// generated: robot motion comes from the estimator, as it will with the real
+// PLC. Keep the cycle in sync with scripts/simulate.mjs.
 
-import { IO_CHANNELS, type RobotId } from '../model/cell';
+import { IO_CHANNELS } from '../model/cell';
 import { disconnectTwin } from '../mqtt/connection';
 import { useTwinStore } from '../state/store';
 
@@ -21,20 +22,19 @@ interface Step {
 }
 
 const CYCLE: Step[] = [
-  { ms: 1500, di: [], do: [DO.jakaDi3] }, // Etapa 0 -> 1: Jaka may place
-  { ms: 1000, di: [DI.jakaSensor], do: [DO.jakaDi3] }, // part detected at Jaka
-  { ms: 500, di: [DI.jakaSensor, DI.jakaDo7], do: [DO.jakaDi3] }, // Jaka done
-  { ms: 2500, di: [], do: [DO.convJakaToStaubli] }, // Etapa 2: conveyor running
+  { ms: 4000, di: [], do: [DO.jakaDi3] }, // Etapa 0 -> 1: Jaka fetches a part
+  { ms: 800, di: [DI.jakaSensor], do: [DO.jakaDi3] }, // part on the conveyor
+  { ms: 500, di: [DI.jakaSensor, DI.jakaDo7], do: [DO.convJakaToStaubli] }, // Jaka done: PLC clears DI3, starts conveyor
+  { ms: 2500, di: [], do: [DO.convJakaToStaubli] }, // Etapa 2: part travelling
   { ms: 1000, di: [DI.staubliSensor], do: [DO.staubliDi12] }, // Stäubli may pick (1 s pulse)
-  { ms: 1500, di: [DI.staubliSensor], do: [] }, // Stäubli picking
+  { ms: 1500, di: [DI.staubliSensor], do: [] }, // Stäubli picking, part leaves the sensor at the end
 ];
 
 const IO_PERIOD_MS = 500;
-const JOINT_PERIOD_MS = 100;
 
-let timers: number[] = [];
-let stepIndex = 0;
+let ioTimer: number | null = null;
 let stepTimer: number | null = null;
+let stepIndex = 0;
 
 function channels(active: number[]): boolean[] {
   const set = new Set(active);
@@ -62,18 +62,11 @@ function scheduleNextStep(): void {
   }, step?.ms ?? 1000);
 }
 
-function publishJoints(): void {
-  const t = Date.now() / 1000;
-  const wave = (amp: number, speed: number, phase = 0) => amp * Math.sin(t * speed + phase);
-  const now = Date.now();
-  const joints: Record<RobotId, number[]> = {
-    staubli: [wave(90, 0.5), wave(30, 0.7, 1), 90 + wave(20, 0.9), 0, wave(45, 1.1), 0],
-    jaka: [wave(120, 0.4), 90 + wave(25, 0.6), wave(40, 0.8, 2), wave(60, 1), 90, wave(90, 0.5)],
-  };
-  const store = useTwinStore.getState();
-  for (const robot of Object.keys(joints) as RobotId[]) {
-    store.setRobot(robot, { ts: now, receivedAt: now, joints: joints[robot], mode: 'demo' });
-  }
+function stopTimers(): void {
+  if (ioTimer !== null) window.clearInterval(ioTimer);
+  if (stepTimer !== null) window.clearTimeout(stepTimer);
+  ioTimer = null;
+  stepTimer = null;
 }
 
 export function startDemo(): void {
@@ -87,17 +80,8 @@ export function startDemo(): void {
 
   stepIndex = 0;
   publishIo();
-  publishJoints();
   scheduleNextStep();
-  timers.push(window.setInterval(publishIo, IO_PERIOD_MS));
-  timers.push(window.setInterval(publishJoints, JOINT_PERIOD_MS));
-}
-
-function stopTimers(): void {
-  timers.forEach((id) => window.clearInterval(id));
-  timers = [];
-  if (stepTimer !== null) window.clearTimeout(stepTimer);
-  stepTimer = null;
+  ioTimer = window.setInterval(publishIo, IO_PERIOD_MS);
 }
 
 export function stopDemo(): void {
