@@ -23,8 +23,10 @@ already match the real cell and which ones are placeholders.
 | `Etapa`, `iContador`, `Ligar` | PLC (program variables) | **Not shown yet** | Bridge sends them, then the website shows them ([step 3](docs/publishing-plan/03-bridge.md)) |
 | Robot axes: Stäubli 4-axis SCARA (J3 in mm), Jaka 6-axis | Cell photos | **Confirmed** type; exact Stäubli model still to check on the nameplate | Already real |
 | Robot phase ("picking part", "returning home", ...) | Estimated from the PLC handshake signals | **Estimated**, exact at each PLC event, timing learned from the cycles seen | Exact for every phase once the unused robot outputs are set in the robot programs ([robot-estimation](docs/robot-estimation.md)) |
-| Robot joint angles | Estimated from the phase + taught poses | **Placeholder poses**, motion between them is interpolated | Real poses copied from the pendants into `src/model/poses.ts`. Live joints from the controllers override the estimate if ever published |
-| Cell layout in the 2D view | Drawing | **Approximate**, positions are placeholders | Adjusted from photos/measurements of the cell |
+| Robot joint angles | Estimated from the phase + taught poses | **Placeholder poses** computed from the layout; timed by joint motion, SCARA lifts J3 before travelling | Real poses copied from the pendants into `src/model/poses.ts`. Live joints from the controllers override the estimate if ever published |
+| Robot geometry (link lengths, Stäubli stroke) | Public datasheets (TS2-60 class, MiniCobo reach) | **Placeholder**, link split guessed | Exact models confirmed on the nameplates ([robot-estimation](docs/robot-estimation.md#drawing-to-scale)) |
+| Cell layout (robot bases, conveyors, source, destination) | `src/model/layout.ts` | **Placeholder**, chosen so both robots reach their points | Measured on the cell |
+| Part position (source, grippers, belt, placed count) | Estimated from sensors, conveyor output and gripper state | **Estimated**, exact at both sensors, belt speed learned | Already from PLC signals once they are live |
 
 The PLC only exchanges digital I/O with the robots. It never knows where the
 arms are, but it knows what each robot is doing. The website uses that to

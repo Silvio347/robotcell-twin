@@ -57,7 +57,8 @@ The website uses its own subscribe-only credential (see
 | `src/model/messages.ts` | Payload parsing and validation. Malformed messages are dropped |
 | `src/mqtt/` | Topic names and the single broker connection (subscribe only) |
 | `src/model/robots.ts`, `src/model/poses.ts` | Robot axes/units and taught poses |
-| `src/estimator/` | Robot phase and joints estimated from PLC I/O |
+| `src/model/layout.ts`, `src/model/kinematics.ts` | Cell layout in mm and robot forward/inverse kinematics |
+| `src/estimator/` | Robot phase, joints, gripper and part position estimated from PLC I/O |
 | `src/sim/demo.ts` | In-browser demo cycle (no broker) |
 | `src/state/store.ts` | App state (zustand) |
 | `src/components/` | 2D cell view, I/O table, joint panel, connect form, status bar |

@@ -19,8 +19,37 @@ Code: `src/estimator/` (engine and task definitions) and `src/model/poses.ts`.
    observed time between events (moving average). After 2–3 cycles the
    animation follows the real cell speed.
 5. E-stop, cell stopped (`Jaka DI2` low) or stale data freeze the robots
-   where they are. When the cell runs again, each robot restarts from its
-   first segment.
+   where they are (a gripped part stays in the gripper). When the cell runs
+   again, each robot restarts from its first segment.
+
+## Motion inside a segment
+
+- **Timing by motion size.** Each move gets a share of the segment time
+  proportional to how long it takes at the robot's nominal joint speeds
+  (`jointSpeeds` in `src/estimator/tasks.ts`). A 120 mm descent of the
+  Stäubli J3 is short; a 100° swing of J1 is long.
+- **Lift before travel (Stäubli).** If the SCARA has J3 down and needs to
+  move J1/J2/J4, it first raises J3 to the top, then travels, then descends
+  at the target. This is what the approach points of a VAL3 pick-and-place
+  program do.
+- **Gripper.** Each pick segment closes the gripper when it reaches the pick
+  pose; the release/place segment opens it at the release pose.
+
+## Parts
+
+`src/estimator/parts.ts` tracks one part through the cell:
+
+| Where | From | Until |
+|---|---|---|
+| Part source (assumed always supplied) | — | Jaka gripper closes |
+| Jaka gripper | Jaka reaches the pick pose | `Sensor Jaka` rises (part on the belt) |
+| Jaka → Stäubli belt | `Sensor Jaka` rises | Stäubli gripper closes |
+| Stäubli gripper | Stäubli reaches the pick pose | Stäubli reaches the place pose |
+| Destination | Stäubli gripper opens (counted in "Placed") | — |
+
+While the belt output is on, the part moves at a speed learned from
+"conveyor on" → "`Sensor Stäubli` on" in earlier cycles. Without the sensor
+it stops just before the Stäubli end.
 
 `Jaka DI2` is used as the "cell running" flag because the PLC holds it TRUE
 during the sequence and clears it in the stop branch. `Stäubli DI13` cannot
@@ -56,8 +85,11 @@ be used: the stop branch sets it TRUE as well (known issue 3 in
 | Jaka timing up to "part on the conveyor" and release | Learned from the real cell |
 | Stäubli pick timing | Learned from the real cell |
 | Stäubli place and return, Jaka pick vs. place split | Fixed default durations (no PLC event) |
-| Poses | **Placeholders** until real values are copied into `src/model/poses.ts` |
-| Path between poses | Smooth joint interpolation, not the real trajectory |
+| Poses | **Placeholders** computed from the placeholder layout until real values are copied into `src/model/poses.ts` |
+| Robot geometry | **Placeholder** link lengths (datasheet reach, guessed split), see `src/model/kinematics.ts` |
+| Cell layout | **Placeholder** positions, see `src/model/layout.ts` |
+| Path between poses | Joint interpolation with the SCARA lift rule, not the real trajectory |
+| Part position on the belt | Learned belt travel time, confirmed at both sensors |
 
 If the PLC never sets `Stäubli DI12` (known issue 1 in
 [plc-program.md](plc-program.md)), the twin shows the Stäubli waiting at
@@ -93,7 +125,23 @@ Do this once with the cell in manual mode:
    J3 in mm.
 4. Write them in `src/model/poses.ts` and set `POSES_ARE_PLACEHOLDERS = false`.
 
-The 2D view draws the Stäubli as a SCARA from J1/J2 (J3 shown as the tool
-size) and the Jaka as its J1 direction. Its convention (J1 = 0 points to the
-conveyor) may differ from the robot's own zero, so adjust `heading` in
-`src/components/CellView2D.tsx` after entering real values.
+## Drawing to scale
+
+The 2D view is a top view drawn in millimetres from `src/model/layout.ts`.
+Arms come from forward kinematics (`src/model/kinematics.ts`): the Stäubli
+from J1/J2 (L1, L2) with the gripper rotated by J4, the Jaka from its six
+joints (standard DH, UR-style). The tool height, which a top view cannot
+show, is on the Z gauge next to each robot.
+
+The placeholder poses are computed from the layout with inverse kinematics,
+so the tools land on the conveyor, part source and destination. With real
+values the order is:
+
+1. Measure the layout (robot bases, conveyor ends, source, destination,
+   heights) and update `src/model/layout.ts`.
+2. Confirm the robot models and update the link lengths in
+   `src/model/kinematics.ts` (Stäubli L1/L2/stroke, Jaka DH).
+3. Copy the real poses into `src/model/poses.ts` as plain numbers.
+4. If a tool does not land on its point in the drawing, the base `yaw` or a
+   joint zero differs between the robot and the model: adjust `yaw` in the
+   layout first.
