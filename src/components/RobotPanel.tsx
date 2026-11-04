@@ -1,10 +1,21 @@
 import { useRobotView } from '../hooks/useRobotView';
 import type { RobotId } from '../model/cell';
+import { jakaFk, scaraFk } from '../model/kinematics';
+import { toCellFrame, type Point3 } from '../model/layout';
 import { POSES_ARE_PLACEHOLDERS } from '../model/poses';
 import { ROBOT_IDS, ROBOTS, type JointDef } from '../model/robots';
 
 function formatJoint(value: number, def: JointDef): string {
   return def.unit === 'mm' ? `${value.toFixed(0)} mm` : `${value.toFixed(1)}°`;
+}
+
+function formatPoint(p: Point3): string {
+  return `x ${p.x.toFixed(0)}, y ${p.y.toFixed(0)}, z ${p.z.toFixed(0)} mm`;
+}
+
+function toolPosition(robot: RobotId, joints: readonly number[]): Point3 {
+  const tool = robot === 'staubli' ? scaraFk(joints).tool : jakaFk(joints).points[6]!;
+  return toCellFrame(robot, tool);
 }
 
 function RobotCard({ robot, now }: { robot: RobotId; now: number }) {
@@ -38,6 +49,12 @@ function RobotCard({ robot, now }: { robot: RobotId; now: number }) {
         </ol>
       ) : (
         <p className="muted">No data yet.</p>
+      )}
+      {joints && (
+        <p className="small">
+          Tool {formatPoint(toolPosition(robot, joints))}
+          {estimate && <span className="muted"> · gripper {estimate.holding ? 'holding a part' : 'empty'}</span>}
+        </p>
       )}
       {source && (
         <p className="muted small">
