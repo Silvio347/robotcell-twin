@@ -11,14 +11,20 @@ so a 3D arm would have nothing real to move.
 
 - **Now (2D):** an SVG schematic driven by the PLC I/O. It is useful as soon
   as the PLC publishes, and it stays useful later as the "signals" view.
-- **Later (3D):** add a Three.js scene (React Three Fiber) once two things exist:
-  1. Joint positions from the robot controllers (`robotcell/<robot>/state`).
-     The Jaka controller has a TCP/IP interface that reports joint positions,
-     and a Stäubli VAL3 program can stream its joints over a TCP socket. The
-     same bridge PC from the publishing plan forwards both to MQTT.
-  2. Robot models. Public URDF/mesh packages exist for Jaka and Stäubli arms
-     (ROS). Pick the exact model from the photos. `urdf-loader` loads URDF
-     into Three.js directly.
+- **Later (3D):** add a Three.js scene (React Three Fiber). Two ways to move the arms:
+  1. **Taught points + PLC steps (approximate):** take the waypoints from the
+     Stäubli (VAL3) and Jaka programs, and play the matching motion when the
+     PLC handshake says a robot is moving. The poses are real; the timing in
+     between is interpolated.
+  2. **Live joints (exact):** read the joint positions from the robot
+     controllers and publish `robotcell/<robot>/state`. The Jaka controller
+     has a TCP/IP interface that reports joint positions, and a VAL3 program
+     can stream the Stäubli joints over a TCP socket. The bridge PC forwards
+     both to MQTT.
+
+  Robot models: public URDF/mesh packages exist for Jaka and Stäubli arms
+  (ROS). Pick the exact model from the photos. `urdf-loader` loads URDF into
+  Three.js directly.
 
 The state model and MQTT contract already include joint data, so adding 3D is
 a new view, not a rewrite.
@@ -51,6 +57,7 @@ The website uses its own subscribe-only credential (see
 | `src/model/cell.ts` | Cell I/O map (Table I) |
 | `src/model/messages.ts` | Payload parsing and validation. Malformed messages are dropped |
 | `src/mqtt/` | Topic names and the single broker connection (subscribe only) |
+| `src/sim/demo.ts` | In-browser demo cycle (no broker) |
 | `src/state/store.ts` | App state (zustand) |
 | `src/components/` | 2D cell view, I/O table, joint panel, connect form, status bar |
 

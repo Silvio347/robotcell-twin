@@ -1,13 +1,31 @@
 # Robot Cell Digital Twin
 
-Web digital twin of the Inatel robot cell (Stäubli + Jaka Minicobo, two
-conveyors, B&R Power Panel PLC). Live data arrives over MQTT from the same
-HiveMQ Cloud broker used by Fluxio.
+Web digital twin of the Inatel robot cell: Stäubli + Jaka Minicobo, two
+conveyors, B&R Power Panel PLC. The PLC signals are published over MQTT and
+the website draws the cell live. This repository also holds the cell's
+Automation Studio project (`plc/`).
 
-Current scope: a read-only 2D view of the PLC I/O, plus robot joint values
-when a publisher sends them. A 3D view is planned; see
-[docs/architecture.md](docs/architecture.md) for the decisions and
-[docs/mqtt-contract.md](docs/mqtt-contract.md) for topics and payloads.
+Project overview: [docs/README.md](docs/README.md). Plan to get live data
+online: [docs/publishing-plan/](docs/publishing-plan/README.md).
+
+## What is real and what is simulated
+
+The website has no live connection to the cell yet. **Run demo without
+broker** generates every value in the browser. The table shows which values
+already match the real cell and which ones are placeholders.
+
+| Data | Source | Status today | Real when |
+|---|---|---|---|
+| I/O map (which signal is on which channel) | `IoMap.iom` in the PLC project + Table I of the handout | **Confirmed**, matches both | Already real |
+| Handshake and sequence signals: `Jaka_DI2/DI3/DO7`, `Staubli_DI12/DI13`, `Sensor_Jaka`, `Sensor_Staubli`, `Esteira_JakaStaubli` | PLC | **Simulated**, follows the real `NewProgram` sequence with made-up timing | The PLC sends its I/O ([steps 2–3](docs/publishing-plan/README.md)) |
+| `Emergencia` | PLC | **Simulated**, always safe (TRUE). Polarity confirmed in the PLC code | Same as above |
+| Unused signals: `Jaka_DO5/DO6/DI1`, `Staubli_DO4–DO7`, `Staubli_DI14/DI15`, `Esteira_StaubliJaka` | PLC | **Simulated**, always off (the program never uses them) | Same as above |
+| `Etapa`, `iContador`, `Ligar` | PLC (program variables) | **Not shown yet** | Bridge sends them, then the website shows them ([step 3](docs/publishing-plan/03-bridge.md)) |
+| Robot joint angles J1–J6 (Stäubli and Jaka) | Robot controllers | **Random**, sine waves with no relation to the real robots | Joints are read from the robot controllers ([architecture](docs/architecture.md)) |
+| Cell layout in the 2D view | Drawing | **Approximate**, positions are placeholders | Adjusted from photos/measurements of the cell |
+
+The PLC only exchanges digital I/O with the robots. It never knows where the
+arms are, so joint angles cannot come from the PLC.
 
 ## Requirements
 
@@ -26,9 +44,9 @@ Open the printed URL, then enter a broker username and password, or click
 
 ## Demo mode (no broker)
 
-**Run demo without broker** on the start screen plays the PLC cycle from
-`NewProgram` inside the browser (`src/sim/demo.ts`): Jaka places a part, the
-conveyor carries it to the Stäubli, the Stäubli picks it. No MQTT is involved.
+**Run demo without broker** plays the PLC cycle from `NewProgram` inside the
+browser (`src/sim/demo.ts`): Jaka places a part, the conveyor carries it to
+the Stäubli, the Stäubli picks it. No MQTT is involved.
 
 ## MQTT simulator
 
@@ -36,15 +54,12 @@ Publishes the same cycle to a real broker, to test the full MQTT path. It
 uses the native MQTT port (8883), not WebSockets:
 
 ```bash
-MQTT_URL=mqtts://<cluster>.s1.eu.hivemq.cloud:8883 \
+MQTT_URL=mqtts://<cluster-id>.s1.eu.hivemq.cloud:8883 \
 MQTT_USERNAME=<user> MQTT_PASSWORD=<pass> npm run simulate
 ```
 
 The website shows **Source: SIMULATED** while it runs. Do not run it while
 the real PLC/bridge publishes on the same prefix.
-
-For a fully local setup, run Mosquitto with a WebSocket listener and connect
-the site to `ws://localhost:<port>`.
 
 ## Build and deploy
 
@@ -52,15 +67,18 @@ the site to `ws://localhost:<port>`.
 npm run build      # type-check + production build into dist/
 ```
 
-- **Netlify:** link the repo; `netlify.toml` sets the build command and `dist`.
-  Set `VITE_MQTT_URL` and `VITE_TOPIC_PREFIX` in the site environment.
-- **Firebase Hosting:** `firebase use <project>` then `firebase deploy --only hosting`.
+Deploy steps for Netlify and Firebase Hosting:
+[docs/publishing-plan/04-website-deploy.md](docs/publishing-plan/04-website-deploy.md).
 
-## Project structure
+## Repository layout
 
-- `src/model/cell.ts`: cell I/O map (Table I of the handout).
-- `src/model/messages.ts`: MQTT payload parsing and validation.
-- `src/mqtt/`: topics and the single broker connection (subscribe only).
-- `src/state/store.ts`: app state (zustand).
-- `src/components/`: 2D cell view, I/O table, robot joints, connect form.
-- `scripts/simulate.mjs`: fake data publisher.
+```
+plc/ProjetoFinalRobotica/   Automation Studio 4.1 project (PLC + HMI)
+src/                        Website (React + TypeScript + Vite)
+scripts/simulate.mjs        MQTT simulator
+docs/                       Project docs, MQTT contract, publishing plan
+```
+
+The PLC project in git is missing some files on purpose (B&R Runtime
+binaries, build output, per-user settings). See
+[docs/plc-program.md](docs/plc-program.md#files-kept-out-of-git).
