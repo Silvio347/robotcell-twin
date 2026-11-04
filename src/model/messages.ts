@@ -22,7 +22,7 @@ export interface PlcIoSnapshot {
 export interface RobotState {
   ts: number | null;
   receivedAt: number;
-  /** Joint positions in degrees, base to flange. */
+  /** Joint positions base to flange, units per src/model/robots.ts. */
   joints: number[];
   mode: string | null;
 }
@@ -70,11 +70,10 @@ export function parsePlcIo(payload: string, receivedAt: number): PlcIoSnapshot |
   return { ts: parseTs(obj.ts), receivedAt, di, do: dout };
 }
 
-export function parseRobotState(payload: string, receivedAt: number): RobotState | null {
+/** `jointCount` comes from src/model/robots.ts (4 for the Stäubli SCARA, 6 for the Jaka). */
+export function parseRobotState(payload: string, receivedAt: number, jointCount: number): RobotState | null {
   const obj = parseJson(payload);
-  if (!obj || !Array.isArray(obj.joints) || obj.joints.length === 0 || obj.joints.length > 7) {
-    return null;
-  }
+  if (!obj || !Array.isArray(obj.joints) || obj.joints.length !== jointCount) return null;
   if (!obj.joints.every((j) => typeof j === 'number' && Number.isFinite(j))) return null;
   return {
     ts: parseTs(obj.ts),
