@@ -30,6 +30,7 @@ robotcell-twin/
     ├── README.md               This file
     ├── plc-program.md          How the PLC program works + known issues
     ├── robot-estimation.md     How robot motion is estimated from PLC signals
+    ├── 3d-plan.md              Plan for the 3D view
     ├── architecture.md         Website design decisions (2D/3D, stack, hosting)
     ├── mqtt-contract.md        Topics and payloads
     └── publishing-plan/        Step-by-step plan to get live cell data online
@@ -60,4 +61,4 @@ Details and the order of work are in [publishing-plan/](publishing-plan/README.m
 | PLC → UDP sender | Planned ([step 2](publishing-plan/02-plc-udp-sender.md)) |
 | Bridge PC | Planned ([step 3](publishing-plan/03-bridge.md)) |
 | Website deploy | Ready to deploy ([step 4](publishing-plan/04-website-deploy.md)) |
-| 3D view with live robot joints | Future, see [architecture.md](architecture.md) |
+| 3D view | Planned, see [3d-plan.md](3d-plan.md) |
