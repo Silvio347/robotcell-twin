@@ -57,7 +57,7 @@ Details and the order of work are in [publishing-plan/](publishing-plan/README.m
 | PLC sequence (Jaka places → conveyor → Stäubli picks) | Exists, has known issues, see [plc-program.md](plc-program.md) |
 | Website 2D view, I/O table, robot panel | Done, tested with the simulator on a local broker |
 | Robot phase and joints estimated from PLC signals | Done, poses are placeholders ([robot-estimation.md](robot-estimation.md)) |
-| PLC → UDP sender | Planned ([step 2](publishing-plan/02-plc-udp-sender.md)) |
-| Bridge PC | Planned ([step 3](publishing-plan/03-bridge.md)) |
+| PLC → UDP sender | Code ready, to compile in Automation Studio ([step 2](publishing-plan/02-plc-udp-sender.md)) |
+| Bridge (Python, runs on the PC connected to the PLC) | Done, tested with a fake PLC ([step 3](publishing-plan/03-bridge.md)) |
 | Website deploy | Ready to deploy ([step 4](publishing-plan/04-website-deploy.md)) |
 | 3D view with live robot joints | Future, see [architecture.md](architecture.md) |
