@@ -46,3 +46,16 @@ VAR
 	bRet11 : INT;
 	bRet12 : INT;
 END_VAR
+(* Digital twin UDP sender (TwinSender.st). Set TwinHost to the IP of the bridge PC. *)
+VAR
+	TwinHost : STRING[15] := '192.168.0.100'; (*IP of the bridge PC on the cell network*)
+	TwinPort : UINT := 5005; (*UDP port the bridge listens on*)
+	TwinLocalPort : UINT := 5006; (*local UDP port on the PLC*)
+	TwinOpen : UdpOpen;
+	TwinSend : UdpSend;
+	TwinTimer : TON;
+	TwinPacket : ARRAY[0..27] OF USINT;
+	TwinSeq : USINT;
+	TwinState : USINT;
+	TwinSendErrors : UDINT; (*failed sends, for diagnosis only*)
+END_VAR
