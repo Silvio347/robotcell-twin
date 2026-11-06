@@ -55,16 +55,31 @@ between them replaces only the mesh.
 | 1. Vendor CAD | Real shapes from the manufacturers' CAD (STEP), split per link and converted to GLB | Download from Stäubli / JAKA, convert in FreeCAD or Blender | After the exact models are confirmed |
 | 2. URDF | Load a robot description with `urdf-loader` | A URDF with meshes we may publish | Only if a licensed one exists |
 
+Models in the cell (from the nameplates):
+
+| Item | Model | What it means for 3D |
+|---|---|---|
+| Stäubli | **TS60** SCARA, the generation before the TS2-60 (8.4 kg, 620 mm reach) | Simple shape: base column, two horizontal arms, vertical quill. Level 0 primitives already look close to the real robot. The current placeholder reach (320 + 300 mm) matches 620 mm; the split and the J3 stroke still need the TS60 manual or nameplate |
+| Jaka | JAKA MiniCobo (from the photo) | Six links; primitives look like a generic cobot, CAD makes the biggest visual difference here |
+| Jaka gripper | `RMHZ2-20D-...` matches the SMC **MHZ2-20D** pneumatic parallel gripper (20 mm bore, double acting, about 10 mm total jaw stroke) | Jaws can open and close with the estimated gripper state. SMC publishes CAD for this series |
+
+`RMHZ2-20D-091N` is not a robot model: it is the gripper's part number.
+Confirm it was read on the Jaka's tool and whether the Stäubli has its own
+gripper (it must hold the parts and the marker, see
+[whiteboard-application.md](whiteboard-application.md)).
+
 What is available publicly:
 
-- **Stäubli TS2 (SCARA):** the ROS-Industrial `staubli` repository
-  (Apache-2.0) only covers 6-axis models (RX160, TX90). No TS2 URDF was found.
-  Stäubli offers CAD files of the TS2 range on its website. Check the download
-  terms before publishing converted meshes in a public repository.
+- **Stäubli TS60 (SCARA):** the ROS-Industrial `staubli` repository
+  (Apache-2.0) only covers 6-axis models (RX160, TX90). No SCARA URDF was
+  found. Stäubli offers CAD files on its website; the TS60 is an older model,
+  so it may only be available on request. Check the download terms before
+  publishing converted meshes in a public repository.
 - **JAKA MiniCobo:** community ROS repositories on GitHub have MiniCobo URDFs
   and meshes, but the ones found have **no license**. They can be read to
   check joint offsets, but their meshes cannot be copied into this public
   repository. JAKA's official download area may have CAD files.
+- **SMC MHZ2-20D:** CAD from SMC's online catalogue.
 
 **Recommendation:** level 0 first, level 1 once the models and CAD terms are
 confirmed.
@@ -90,6 +105,11 @@ top. The base height must be measured and added to the layout (`z` of the
 mount), otherwise J3 heights will be wrong in 3D.
 
 ## Scene contents
+
+For the whiteboard application the scene changes as described in
+[whiteboard-application.md](whiteboard-application.md#in-the-twin): marker
+instead of a part on the belt, two parts lying on the board, and the ink of
+the squares drawn on the board as the Stäubli moves.
 
 | Element | Driven by |
 |---|---|
@@ -138,14 +158,16 @@ the same way between messages.
 6. `feat(3d)`: level 1 GLB models, once the models are confirmed.
 7. `docs`: README table and robot-estimation.md updates at each step.
 
-Steps 1–5 do not depend on the robot models.
+Steps 1–5 do not depend on the robot models. If the whiteboard application
+is adopted, adapt the twin to it in 2D first (it reuses everything and shows
+the ink in the top view), then build the 3D view on top.
 
 ## Needed from the cell
 
 | Item | Used for |
 |---|---|
-| Exact models on the nameplates (Stäubli TS2-xx, JAKA MiniCobo version) | Link lengths, CAD download |
+| Stäubli TS60 arm lengths and J3 stroke (manual or nameplate), JAKA MiniCobo version | Link lengths, CAD download |
 | Whether the vendor CAD files may be published | Level 1 in a public repository |
 | Photos from 2–3 angles and a few measurements (bases, stand height, conveyor ends, table) | Layout and camera matching |
-| Gripper type on each robot (pneumatic, suction, electric) | Tool model and grip point |
+| Gripper on the Stäubli (the Jaka has the SMC MHZ2-20D) | Tool model and grip point |
 | One real pose per robot with all joint values | Joint map table |

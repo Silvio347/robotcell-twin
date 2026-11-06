@@ -31,6 +31,7 @@ robotcell-twin/
     ├── plc-program.md          How the PLC program works + known issues
     ├── robot-estimation.md     How robot motion is estimated from PLC signals
     ├── 3d-plan.md              Plan for the 3D view
+    ├── whiteboard-application.md  Proposal: marker + whiteboard application
     ├── architecture.md         Website design decisions (2D/3D, stack, hosting)
     ├── mqtt-contract.md        Topics and payloads
     └── publishing-plan/        Step-by-step plan to get live cell data online
