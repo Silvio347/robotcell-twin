@@ -8,43 +8,72 @@
  ********************************************************************
  * Local variables of program NewProgram
  ********************************************************************)
+(* I/O, mapped in IoMap.iom (Table I of the cell handout) *)
 VAR
 	Emergencia : BOOL;
-	Jaka_DO7 : BOOL;
-	Jaka_DO6 : BOOL;
-	Jaka_DO5 : BOOL;
-	Jaka_DI3 : BOOL;
-	Jaka_DI2 : BOOL;
-	Jaka_DI1 : BOOL;
-	Staubli_DO4 : BOOL;
-	Staubli_DO5 : BOOL;
-	Staubli_DO6 : BOOL;
-	Staubli_DO7 : BOOL;
-	Staubli_DI12 : BOOL;
-	Staubli_DI13 : BOOL;
-	Staubli_DI14 : BOOL;
-	Staubli_DI15 : BOOL;
-	Esteira_StaubliJaka : BOOL;
-	Esteira_JakaStaubli : BOOL;
-	Ligar : BOOL;
-	Etapa : INT;
+	Jaka_DO7 : BOOL; (*DONE: marker on the conveyor*)
+	Jaka_DO6 : BOOL; (*spare*)
+	Jaka_DO5 : BOOL; (*pulse: marker gripped (twin only)*)
+	Jaka_DI3 : BOOL; (*CMD: put the marker on the conveyor*)
+	Jaka_DI2 : BOOL; (*enable*)
+	Jaka_DI1 : BOOL; (*spare*)
+	Staubli_DO4 : BOOL; (*DONE: parts on the board*)
+	Staubli_DO5 : BOOL; (*DONE: squares drawn, marker stored*)
+	Staubli_DO6 : BOOL; (*pulse: one part placed*)
+	Staubli_DO7 : BOOL; (*pulse: one square drawn*)
+	Staubli_DI12 : BOOL; (*CMD: place the two parts on the board*)
+	Staubli_DI13 : BOOL; (*enable*)
+	Staubli_DI14 : BOOL; (*CMD: pick the marker and draw*)
+	Staubli_DI15 : BOOL; (*spare*)
+	Esteira_StaubliJaka : BOOL; (*spare*)
+	Esteira_JakaStaubli : BOOL; (*carries the marker to the Staubli*)
 	Sensor_Jaka : BOOL;
 	Sensor_Staubli : BOOL;
-	ABC : BOOL;
-	Timer_Staubli : TON;
-	bRet1 : INT;
-	iContador : INT;
-	bRet2 : INT;
-	bRet3 : INT;
-	bRet4 : INT;
-	bRet5 : INT;
-	bRet6 : INT;
-	bRet7 : INT;
-	bRet8 : INT;
-	bRet9 : INT;
-	bRet10 : INT;
-	bRet11 : INT;
-	bRet12 : INT;
+END_VAR
+(* Sequence *)
+VAR
+	Ligar : BOOL; (*start request from the HMI, cleared at the end of the cycle*)
+	Etapa : INT; (*0 idle, 1 marker + parts, 2 drawing, 3 finishing*)
+	MarcadorNaEsteira : BOOL;
+	MarcadorChegou : BOOL;
+	PecasNoQuadro : BOOL;
+	CicloConcluido : BOOL;
+	iContador : INT; (*completed cycles*)
+	PulsoPeca : R_TRIG;
+	PulsoQuadrado : R_TRIG;
+	TempoCiclo : TON;
+END_VAR
+(* HMI (Init_Page) *)
+VAR
+	iPecasNoQuadro : INT; (*0..2*)
+	iQuadrados : INT; (*0..2*)
+	iTempoCiclo_s : INT; (*seconds*)
+	iMarcador : INT; (*0 Jaka, 1 conveyor, 2 Staubli*)
+	iProgresso : INT; (*0..4*)
+	iCorJaka : INT;
+	iCorEsteira : INT;
+	iCorPecas : INT;
+	iCorDesenho : INT;
+	iCorConcluido : INT;
+	iCorPeca1 : INT;
+	iCorPeca2 : INT;
+	iCorQuadrado1 : INT;
+	iCorQuadrado2 : INT;
+	iCorMarcJaka : INT;
+	iCorMarcEsteira : INT;
+	iCorMarcStaubli : INT;
+	iCorEmergencia : INT;
+END_VAR
+(* HMI palette indexes (Palette.vcr) *)
+VAR CONSTANT
+	COR_ESPERA : INT := 250; (*light grey: waiting*)
+	COR_ANDAMENTO : INT := 46; (*yellow: running*)
+	COR_FEITO : INT := 155; (*green: done*)
+	COR_ALARME : INT := 51; (*red*)
+	COR_PECA : INT := 204; (*blue: part on the board*)
+	COR_VAZIO : INT := 252; (*very light grey: empty slot*)
+	COR_TINTA : INT := 0; (*black: square drawn*)
+	COR_QUADRO : INT := 15; (*white: whiteboard*)
 END_VAR
 (* Digital twin UDP sender (TwinSender.st). Set TwinHost to the IP of the bridge PC. *)
 VAR
