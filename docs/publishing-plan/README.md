@@ -27,9 +27,9 @@ checks that before anything changes in the PLC.
 | 4 | [Website deploy](04-website-deploy.md) | No | Ready | Public URL works from a phone |
 | 5 | [Optional: MQTT straight from the PLC](05-direct-mqtt-from-plc.md) | Yes (library + network config) | Not started | Bridge PC no longer needed |
 
-Fix the [known PLC issues](../plc-program.md#known-issues) before the
-final demo. They do not block steps 1–4, but issue 1 shows up in the twin as
-`Stäubli DI12` never turning on after the first parts.
+The PLC program implements the whiteboard application
+([plc-program.md](../plc-program.md#sequence)); the sender in step 2 does not
+depend on the sequence.
 
 ## Who does what
 

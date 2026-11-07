@@ -11,13 +11,17 @@ program and a website that mirrors the cell state live over MQTT.
 |---|---|
 | PLC + HMI | B&R Power Panel 4PP481.1043-B5 (PP400), Automation Runtime E3.10 |
 | I/O | X20BR9300 bus controller, X20DI9371 (12 DI), X20DO9322 (12 DO), X20AI4622, X20AO4622 |
-| Robot 1 | Stäubli 4-axis SCARA (exact model: check the nameplate), programmed in VAL3 on the lab PCs, program loaded by USB drive |
-| Robot 2 | Jaka Minicobo, 6-axis cobot, programmed from a PC or the cell tablet |
+| Robot 1 | Stäubli TS60, 4-axis SCARA, programmed in VAL3 on the lab PCs, program loaded by USB drive |
+| Robot 2 | Jaka Minicobo, 6-axis cobot with an SMC MHZ2-20D pneumatic gripper, programmed from a PC or the cell tablet |
 | Conveyors | Stäubli → Jaka (DO11) and Jaka → Stäubli (DO12) |
 | Sensors | One part sensor at each robot (DI9, DI10), E-stop (DI12) |
 
 The robots and the PLC talk only through digital I/O (handshake bits). The
 full channel map is in [mqtt-contract.md](mqtt-contract.md).
+
+The application: the Jaka sends a marker over the conveyor while the Stäubli
+places two parts on a whiteboard; then the Stäubli draws a square around each
+part ([whiteboard-application.md](whiteboard-application.md)).
 
 ## Components in this repository
 
@@ -28,10 +32,10 @@ robotcell-twin/
 ├── scripts/simulate.mjs        Fake data publisher for development
 └── docs/
     ├── README.md               This file
-    ├── plc-program.md          How the PLC program works + known issues
+    ├── plc-program.md          PLC program, HMI and project origin
     ├── robot-estimation.md     How robot motion is estimated from PLC signals
     ├── 3d-plan.md              Plan for the 3D view
-    ├── whiteboard-application.md  Proposal: marker + whiteboard application
+    ├── whiteboard-application.md  The application: marker + whiteboard, signals, robot programs
     ├── architecture.md         Website design decisions (2D/3D, stack, hosting)
     ├── mqtt-contract.md        Topics and payloads
     └── publishing-plan/        Step-by-step plan to get live cell data online
@@ -56,7 +60,8 @@ Details and the order of work are in [publishing-plan/](publishing-plan/README.m
 
 | Part | Status |
 |---|---|
-| PLC sequence (Jaka places → conveyor → Stäubli picks) | Exists, has known issues, see [plc-program.md](plc-program.md) |
+| PLC sequence and HMI for the whiteboard application | Written, to compile on the lab PC ([plc-program.md](plc-program.md)) |
+| Robot programs (Jaka, Stäubli VAL3) | To write, following [whiteboard-application.md](whiteboard-application.md#robot-programs) |
 | Website 2D view, I/O table, robot panel | Done, tested with the simulator on a local broker |
 | Robot phase and joints estimated from PLC signals | Done, poses are placeholders ([robot-estimation.md](robot-estimation.md)) |
 | PLC → UDP sender | Code ready, to compile in Automation Studio ([step 2](publishing-plan/02-plc-udp-sender.md)) |
