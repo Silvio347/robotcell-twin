@@ -28,9 +28,9 @@
           <Text ID="94979" Value="Ligar"/>
           <Text ID="94981" Value="Desligar"/>
           <Text ID="94996" Value="Etapas"/>
-          <Text ID="94997" Value="Jaka: pincel na esteira"/>
-          <Text ID="94998" Value="Esteira: levando o pincel"/>
-          <Text ID="94999" Value="Stäubli: peças no quadro"/>
+          <Text ID="94997" Value="Jaka: placa na esteira"/>
+          <Text ID="94998" Value="Esteira: levando a placa"/>
+          <Text ID="94999" Value="Stäubli: placa na mesa, peças no quadro"/>
           <Text ID="95000" Value="Stäubli: desenhando os quadrados"/>
           <Text ID="95001" Value="Ciclo concluído"/>
           <Text ID="95002" Value="Peças no quadro"/>
@@ -41,7 +41,7 @@
           <Text ID="95007" Value="s (máx. 420)"/>
           <Text ID="95008" Value="Ciclos concluídos"/>
           <Text ID="95009" Value="Quadro"/>
-          <Text ID="95010" Value="Pincel está em:"/>
+          <Text ID="95010" Value="Placa está em:"/>
           <Text ID="95011" Value="Jaka"/>
           <Text ID="95012" Value="Esteira"/>
           <Text ID="95013" Value="Stäubli"/>
@@ -53,9 +53,9 @@
           <Text ID="94979" Value=""/>
           <Text ID="94981" Value=""/>
           <Text ID="94996" Value="Etapas"/>
-          <Text ID="94997" Value="Jaka: pincel na esteira"/>
-          <Text ID="94998" Value="Esteira: levando o pincel"/>
-          <Text ID="94999" Value="Stäubli: peças no quadro"/>
+          <Text ID="94997" Value="Jaka: placa na esteira"/>
+          <Text ID="94998" Value="Esteira: levando a placa"/>
+          <Text ID="94999" Value="Stäubli: placa na mesa, peças no quadro"/>
           <Text ID="95000" Value="Stäubli: desenhando os quadrados"/>
           <Text ID="95001" Value="Ciclo concluído"/>
           <Text ID="95002" Value="Peças no quadro"/>
@@ -66,7 +66,7 @@
           <Text ID="95007" Value="s (máx. 420)"/>
           <Text ID="95008" Value="Ciclos concluídos"/>
           <Text ID="95009" Value="Quadro"/>
-          <Text ID="95010" Value="Pincel está em:"/>
+          <Text ID="95010" Value="Placa está em:"/>
           <Text ID="95011" Value="Jaka"/>
           <Text ID="95012" Value="Esteira"/>
           <Text ID="95013" Value="Stäubli"/>
@@ -78,9 +78,9 @@
           <Text ID="94979" Value=""/>
           <Text ID="94981" Value=""/>
           <Text ID="94996" Value="Etapas"/>
-          <Text ID="94997" Value="Jaka: pincel na esteira"/>
-          <Text ID="94998" Value="Esteira: levando o pincel"/>
-          <Text ID="94999" Value="Stäubli: peças no quadro"/>
+          <Text ID="94997" Value="Jaka: placa na esteira"/>
+          <Text ID="94998" Value="Esteira: levando a placa"/>
+          <Text ID="94999" Value="Stäubli: placa na mesa, peças no quadro"/>
           <Text ID="95000" Value="Stäubli: desenhando os quadrados"/>
           <Text ID="95001" Value="Ciclo concluído"/>
           <Text ID="95002" Value="Peças no quadro"/>
@@ -91,7 +91,7 @@
           <Text ID="95007" Value="s (máx. 420)"/>
           <Text ID="95008" Value="Ciclos concluídos"/>
           <Text ID="95009" Value="Quadro"/>
-          <Text ID="95010" Value="Pincel está em:"/>
+          <Text ID="95010" Value="Placa está em:"/>
           <Text ID="95011" Value="Jaka"/>
           <Text ID="95012" Value="Esteira"/>
           <Text ID="95013" Value="Stäubli"/>
@@ -588,7 +588,7 @@
         </Control>
         <Control ClassId="0x00001001" Name="Shape_13">
           <Property Name="BackColor" Value="250"/>
-          <Property Name="ColorDatapoint" Value="Source[global].Variable[DataSource.NewProgram.iCorMarcJaka]"/>
+          <Property Name="ColorDatapoint" Value="Source[global].Variable[DataSource.NewProgram.iCorPlacaJaka]"/>
           <Property Name="ControlID" Value="0"/>
           <Property Name="Description" Value=""/>
           <Property Name="Height" Value="20"/>
@@ -614,7 +614,7 @@
         </Control>
         <Control ClassId="0x00001001" Name="Shape_14">
           <Property Name="BackColor" Value="250"/>
-          <Property Name="ColorDatapoint" Value="Source[global].Variable[DataSource.NewProgram.iCorMarcEsteira]"/>
+          <Property Name="ColorDatapoint" Value="Source[global].Variable[DataSource.NewProgram.iCorPlacaEsteira]"/>
           <Property Name="ControlID" Value="0"/>
           <Property Name="Description" Value=""/>
           <Property Name="Height" Value="20"/>
@@ -640,7 +640,7 @@
         </Control>
         <Control ClassId="0x00001001" Name="Shape_15">
           <Property Name="BackColor" Value="250"/>
-          <Property Name="ColorDatapoint" Value="Source[global].Variable[DataSource.NewProgram.iCorMarcStaubli]"/>
+          <Property Name="ColorDatapoint" Value="Source[global].Variable[DataSource.NewProgram.iCorPlacaStaubli]"/>
           <Property Name="ControlID" Value="0"/>
           <Property Name="Description" Value=""/>
           <Property Name="Height" Value="20"/>

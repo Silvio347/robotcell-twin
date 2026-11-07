@@ -11,31 +11,31 @@
 (* I/O, mapped in IoMap.iom (Table I of the cell handout) *)
 VAR
 	Emergencia : BOOL;
-	Jaka_DO7 : BOOL; (*DONE: marker on the conveyor*)
+	Jaka_DO7 : BOOL; (*DONE: plate on the conveyor*)
 	Jaka_DO6 : BOOL; (*spare*)
-	Jaka_DO5 : BOOL; (*pulse: marker gripped (twin only)*)
-	Jaka_DI3 : BOOL; (*CMD: put the marker on the conveyor*)
+	Jaka_DO5 : BOOL; (*pulse: plate gripped (twin only)*)
+	Jaka_DI3 : BOOL; (*CMD: put the plate on the conveyor*)
 	Jaka_DI2 : BOOL; (*enable*)
 	Jaka_DI1 : BOOL; (*spare*)
-	Staubli_DO4 : BOOL; (*DONE: parts on the board*)
+	Staubli_DO4 : BOOL; (*DONE: plate on the table, parts on the board*)
 	Staubli_DO5 : BOOL; (*DONE: squares drawn, marker stored*)
 	Staubli_DO6 : BOOL; (*pulse: one part placed*)
 	Staubli_DO7 : BOOL; (*pulse: one square drawn*)
-	Staubli_DI12 : BOOL; (*CMD: place the two parts on the board*)
+	Staubli_DI12 : BOOL; (*CMD: plate to the table, parts to the board*)
 	Staubli_DI13 : BOOL; (*enable*)
 	Staubli_DI14 : BOOL; (*CMD: pick the marker and draw*)
 	Staubli_DI15 : BOOL; (*spare*)
 	Esteira_StaubliJaka : BOOL; (*spare*)
-	Esteira_JakaStaubli : BOOL; (*carries the marker to the Staubli*)
+	Esteira_JakaStaubli : BOOL; (*carries the plate to the Staubli*)
 	Sensor_Jaka : BOOL;
 	Sensor_Staubli : BOOL;
 END_VAR
 (* Sequence *)
 VAR
 	Ligar : BOOL; (*start request from the HMI, cleared at the end of the cycle*)
-	Etapa : INT; (*0 idle, 1 marker + parts, 2 drawing, 3 finishing*)
-	MarcadorNaEsteira : BOOL;
-	MarcadorChegou : BOOL;
+	Etapa : INT; (*0 idle, 1 plate to Staubli, 2 parts to board, 3 wait, 4 drawing, 5 finishing*)
+	PlacaNaEsteira : BOOL;
+	PlacaChegou : BOOL;
 	PecasNoQuadro : BOOL;
 	CicloConcluido : BOOL;
 	iContador : INT; (*completed cycles*)
@@ -48,7 +48,7 @@ VAR
 	iPecasNoQuadro : INT; (*0..2*)
 	iQuadrados : INT; (*0..2*)
 	iTempoCiclo_s : INT; (*seconds*)
-	iMarcador : INT; (*0 Jaka, 1 conveyor, 2 Staubli*)
+	iPlaca : INT; (*plate: 0 Jaka, 1 conveyor, 2 Staubli*)
 	iProgresso : INT; (*0..4*)
 	iCorJaka : INT;
 	iCorEsteira : INT;
@@ -59,9 +59,9 @@ VAR
 	iCorPeca2 : INT;
 	iCorQuadrado1 : INT;
 	iCorQuadrado2 : INT;
-	iCorMarcJaka : INT;
-	iCorMarcEsteira : INT;
-	iCorMarcStaubli : INT;
+	iCorPlacaJaka : INT;
+	iCorPlacaEsteira : INT;
+	iCorPlacaStaubli : INT;
 	iCorEmergencia : INT;
 END_VAR
 (* HMI palette indexes (Palette.vcr) *)
