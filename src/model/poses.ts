@@ -25,8 +25,8 @@ const at = (p: Point2, z: number): Point3 => ({ x: p.x, y: p.y, z });
 const staubli = (p: Point3) => scaraIk(toRobotFrame('staubli', p));
 const jaka = (p: Point3) => jakaIkDown(toRobotFrame('jaka', p));
 
-/** Gripper tip height that grips a marker lying on `surface`. */
-const markerGrip = (surface: number) => surface + marker.diameter;
+/** Gripper tip height that grips the upright marker standing on `surface`. */
+const markerGrip = (surface: number) => surface + marker.standOffset + marker.tipReach;
 /** Gripper tip height while the marker tip touches the board. */
 export const DRAW_Z = board.z + marker.tipReach;
 

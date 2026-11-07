@@ -75,6 +75,9 @@ FALSE.
 
 Practical points:
 
+- The SCARA gripper is vertical, so the marker must stay upright: let it
+  travel standing in a small carrier on the conveyor (and stand in its
+  holders), tip down. The twin models it this way.
 - A SCARA is a good fit for drawing: straight lines at a fixed height.
   A spring-loaded marker holder keeps the pressure even if the board is not
   perfectly flat.

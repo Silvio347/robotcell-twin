@@ -492,3 +492,9 @@ button.secondary {
   margin: 0;
   font-variant-numeric: tabular-nums;
 }
+
+.svg-carrier {
+  fill: #59636e;
+  stroke: #0b0f14;
+  stroke-width: 0.6;
+}

@@ -47,8 +47,13 @@ export const LAYOUT = {
   } satisfies Record<string, ConveyorLayout>,
   /** Parts lie flat; the gripper holds them by the top face. */
   part: { size: 40, height: 20 },
-  /** Marker lying down: length along the conveyor, diameter. */
-  marker: { length: 130, diameter: 18, tipReach: 60 },
+  /**
+   * The marker always stands upright, tip down, in a small carrier (on the
+   * conveyor) or holder, so the vertical SCARA gripper can take it and draw.
+   * tipReach: how far the tip sticks out below the gripper tip.
+   * standOffset: tip height above the surface while it stands in a carrier.
+   */
+  marker: { length: 130, diameter: 18, tipReach: 60, standOffset: 5, carrier: 40 },
   /** Whiteboard on the Stäubli table (centre, size, top surface height). */
   board: { x: -200, y: 300, width: 300, depth: 200, z: 5 },
   /** Part centres on the board; a square is drawn around each one. */

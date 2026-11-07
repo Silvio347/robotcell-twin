@@ -62,14 +62,16 @@ function Part({ at, faded = false }: { at: Point2; faded?: boolean }) {
   );
 }
 
-function Marker({ at }: { at: Point2 }) {
-  const l = LAYOUT.marker.length * K;
+/** The marker stands upright, so from above it is a circle (in its carrier). */
+function Marker({ at, carrier = false }: { at: Point2; carrier?: boolean }) {
   const d = LAYOUT.marker.diameter * K;
+  const c = LAYOUT.marker.carrier * K;
   const p = sp(at);
   return (
     <g>
-      <rect x={p.x - l / 2} y={p.y - d / 2} width={l} height={d} rx={d / 2} className="svg-marker" />
-      <rect x={p.x - l / 2} y={p.y - d / 2} width={l * 0.18} height={d} rx={d / 2} className="svg-marker-tip" />
+      {carrier && <rect x={p.x - c / 2} y={p.y - c / 2} width={c} height={c} rx={2} className="svg-carrier" />}
+      <circle cx={p.x} cy={p.y} r={d / 2 + 1} className="svg-marker" />
+      <circle cx={p.x} cy={p.y} r={d / 4} className="svg-marker-tip" />
     </g>
   );
 }
@@ -185,8 +187,8 @@ function Fixtures() {
   const b = sp({ x: board.x - board.width / 2, y: board.y + board.depth / 2 });
   const holder = (at: Point2, label: string) => {
     const p = sp(at);
-    const w = (LAYOUT.marker.length + 30) * K;
-    const h = (LAYOUT.marker.diameter + 30) * K;
+    const w = (LAYOUT.marker.carrier + 20) * K;
+    const h = w;
     return (
       <g>
         <rect x={p.x - w / 2} y={p.y - h / 2} width={w} height={h} className="svg-area" />
@@ -252,7 +254,7 @@ function Items({ now }: { now: number }) {
         if (place === 'board') return <Part key={i} at={LAYOUT.boardSlots[i]!} />;
         return staubliTool ? <Part key={i} at={staubliTool} /> : null;
       })}
-      {markerAt && <Marker at={markerAt} />}
+      {markerAt && <Marker at={markerAt} carrier={items.marker === 'belt'} />}
     </g>
   );
 }
