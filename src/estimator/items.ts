@@ -1,11 +1,12 @@
-// Estimates where the marker and the two parts are, and the ink on the board,
-// from the PLC I/O and the robots' estimated gripper state (whiteboard
-// application, docs/whiteboard-application.md).
+// Estimates where the plate, the two parts and the marker are, and the ink on
+// the board, from the PLC I/O and the robots' estimated gripper state
+// (whiteboard application, docs/whiteboard-application.md).
 //
-// - A new run starts when Jaka DI3 rises: the operator has put the marker back
-//   at the Jaka and taken the parts off the board.
+// - A new run starts when Jaka DI3 rises: the operator has put the loaded
+//   plate back at the Jaka and cleared the board.
 // - Gripper closing / opening moves the object named in the segment's `meta`.
-// - The marker enters the conveyor when Sensor Jaka sees it and moves at a
+//   Parts still in the plate move with it.
+// - The plate enters the conveyor when the Jaka releases it and moves at a
 //   belt speed learned from "conveyor on" -> "Sensor Stäubli on".
 // - While the Stäubli holds the marker in a drawing segment and its tool is at
 //   drawing height, the tool path is recorded as ink.
@@ -14,21 +15,23 @@
 
 import type { RobotId, SignalId } from '../model/cell';
 import { jakaFk, scaraFk } from '../model/kinematics';
-import { toCellFrame, type Point2, type Point3 } from '../model/layout';
+import { LAYOUT, toCellFrame, type Point2, type Point3 } from '../model/layout';
 import { signalValue, type PlcIoSnapshot } from '../model/messages';
 import { DRAW_Z } from '../model/poses';
 import type { ItemId, RobotEstimate, TaskDef } from './engine';
 
-export type MarkerPlace = 'jakaHolder' | 'jakaGripper' | 'belt' | 'staubliGripper' | 'staubliHolder';
-export type PartPlace = 'source' | 'gripper' | 'board';
+export type PlatePlace = 'jakaTable' | 'jakaGripper' | 'belt' | 'staubliGripper' | 'staubliTable';
+export type PartPlace = 'plate' | 'gripper' | 'board';
+export type MarkerPlace = 'holder' | 'gripper';
 
 export interface ItemsState {
-  marker: MarkerPlace;
-  /** Marker position on the belt, 0 = Jaka end, 1 = Stäubli end. */
+  plate: PlatePlace;
+  /** Plate position on the belt, 0 = Jaka end, 1 = Stäubli end. */
   belt: number;
   travelMs: number;
   conveyorOnAt: number | null;
   parts: [PartPlace, PartPlace];
+  marker: MarkerPlace;
   ink: [Point2[], Point2[]];
   squaresDone: number;
   cycleStartedAt: number | null;
@@ -39,9 +42,10 @@ export interface ItemsState {
 }
 
 export interface ItemsEstimate {
-  marker: MarkerPlace;
+  plate: PlatePlace;
   belt: number;
   parts: readonly [PartPlace, PartPlace];
+  marker: MarkerPlace;
   ink: readonly [readonly Point2[], readonly Point2[]];
   partsOnBoard: number;
   squaresDone: number;
@@ -49,22 +53,25 @@ export interface ItemsEstimate {
   cycleEndedAt: number | null;
 }
 
-const DEFAULT_TRAVEL_MS = 3000;
+const DEFAULT_TRAVEL_MS = 3500;
 const LEARN_RATE = 0.5;
-/** Without a sensor confirmation the marker stops just before the Stäubli end. */
+/** Without a sensor confirmation the plate stops just before the Stäubli end. */
 const MAX_UNCONFIRMED = 0.95;
 /** Tool height tolerance for "marker touching the board". */
 const INK_TOLERANCE = 2;
 /** Minimum distance between recorded ink points. */
 const INK_STEP = 1.5;
+/** Ink of a square is only recorded this close to it (mm), so a segment cut short by its pulse cannot smear into the next square. */
+const INK_MARGIN = 4;
 
 export function initialItems(now: number): ItemsState {
   return {
-    marker: 'jakaHolder',
+    plate: 'jakaTable',
     belt: 0,
     travelMs: DEFAULT_TRAVEL_MS,
     conveyorOnAt: null,
-    parts: ['source', 'source'],
+    parts: ['plate', 'plate'],
+    marker: 'holder',
     ink: [[], []],
     squaresDone: 0,
     cycleStartedAt: null,
@@ -136,9 +143,10 @@ export function updateItems(
   // run (or starting the demo) shows the cycle time.
   const firstData = !prev && state.cycleStartedAt === null;
   if (rise('jakaDi3') || (firstData && on(io, 'jakaDi3'))) {
-    s.marker = 'jakaHolder';
+    s.plate = 'jakaTable';
     s.belt = 0;
-    s.parts = ['source', 'source'];
+    s.parts = ['plate', 'plate'];
+    s.marker = 'holder';
     s.ink = [[], []];
     s.squaresDone = 0;
     s.cycleStartedAt = now;
@@ -154,27 +162,20 @@ export function updateItems(
     if (before.stopped || after.stopped || before.holding === after.holding) continue;
     const item = grippedItem(tasks[robot], before.segment, after.segment, after.holding);
     const part = partIndex(item);
-    if (after.holding) {
-      if (item === 'marker') s.marker = robot === 'jaka' ? 'jakaGripper' : 'staubliGripper';
-      if (part !== null) s.parts[part] = 'gripper';
-    } else {
-      if (item === 'marker') {
-        if (robot === 'jaka') {
-          s.marker = 'belt';
-          s.belt = 0;
-        } else s.marker = 'staubliHolder';
-      }
-      if (part !== null) s.parts[part] = 'board';
+    if (item === 'plate') {
+      if (after.holding) s.plate = robot === 'jaka' ? 'jakaGripper' : 'staubliGripper';
+      else if (robot === 'jaka') {
+        s.plate = 'belt';
+        s.belt = 0;
+      } else s.plate = 'staubliTable';
     }
+    if (item === 'marker' && robot === 'staubli') s.marker = after.holding ? 'gripper' : 'holder';
+    if (part !== null) s.parts[part] = after.holding ? 'gripper' : 'board';
   }
 
   // Conveyor.
   if (rise('conveyorJakaToStaubli')) s.conveyorOnAt = now;
-  if (rise('jakaSensor') && (s.marker === 'jakaGripper' || s.marker === 'jakaHolder')) {
-    // The marker is on the belt as soon as the sensor sees it, still in the gripper.
-    s.belt = 0;
-  }
-  if (s.marker === 'belt' && on(io, 'conveyorJakaToStaubli')) {
+  if (s.plate === 'belt' && on(io, 'conveyorJakaToStaubli')) {
     s.belt = Math.min(MAX_UNCONFIRMED, s.belt + dt / s.travelMs);
   }
   if (rise('staubliSensor')) {
@@ -182,8 +183,8 @@ export function updateItems(
       s.travelMs += (now - s.conveyorOnAt - s.travelMs) * LEARN_RATE;
       s.conveyorOnAt = null;
     }
-    if (s.marker === 'belt' || s.marker === 'jakaGripper') {
-      s.marker = 'belt';
+    if (s.plate === 'belt' || s.plate === 'jakaGripper') {
+      s.plate = 'belt';
       s.belt = 1;
     }
   }
@@ -201,9 +202,12 @@ export function updateItems(
 
   // Ink.
   const square = staubliTask.segments[s.robots.staubli.segment]?.meta?.square;
-  if (square !== undefined && s.marker === 'staubliGripper' && !s.robots.staubli.stopped) {
+  if (square !== undefined && s.marker === 'gripper' && !s.robots.staubli.stopped) {
     const tool = toolPoint('staubli', estimates.staubli.joints);
-    if (tool.z <= DRAW_Z + INK_TOLERANCE) {
+    const slot = LAYOUT.boardSlots[square]!;
+    const near =
+      Math.abs(tool.x - slot.x) <= LAYOUT.squareHalf + INK_MARGIN && Math.abs(tool.y - slot.y) <= LAYOUT.squareHalf + INK_MARGIN;
+    if (near && tool.z <= DRAW_Z + INK_TOLERANCE) {
       const line = s.ink[square];
       const last = line[line.length - 1];
       if (!last || Math.hypot(tool.x - last.x, tool.y - last.y) >= INK_STEP) {
@@ -217,9 +221,10 @@ export function updateItems(
 
 export function itemsEstimate(s: ItemsState): ItemsEstimate {
   return {
-    marker: s.marker,
+    plate: s.plate,
     belt: s.belt,
     parts: s.parts,
+    marker: s.marker,
     ink: s.ink,
     partsOnBoard: s.parts.filter((p) => p === 'board').length,
     squaresDone: s.squaresDone,
@@ -233,14 +238,16 @@ export function plcStep(io: PlcIoSnapshot | null): number | null {
   if (!io) return null;
   if (io.step !== null) return io.step;
   if (!on(io, 'jakaDi2')) return 0;
-  if (on(io, 'staubliDi14')) return 2;
-  if (on(io, 'jakaDi3') || on(io, 'staubliDi12') || on(io, 'conveyorJakaToStaubli')) return 1;
+  if (on(io, 'staubliDi14')) return 4;
+  if (on(io, 'staubliDi12')) return 2;
   return 1;
 }
 
 export const STEP_LABELS: Record<number, string> = {
   0: 'Idle',
-  1: 'Marker to the Stäubli, parts on the board',
-  2: 'Drawing the squares',
-  3: 'Finishing',
+  1: 'Plate to the Stäubli',
+  2: 'Plate on the table, parts to the board',
+  3: 'Parts done',
+  4: 'Drawing the squares',
+  5: 'Finishing',
 };
