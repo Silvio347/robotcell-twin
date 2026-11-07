@@ -11,7 +11,7 @@ computed for the 2D view:
 |---|---|
 | Joint values per robot (live or estimated) | `useRobotView` (`src/hooks/useRobotView.ts`) |
 | Gripper state, phase, progress | `RobotEstimate` from `src/estimator/engine.ts` |
-| Part on the belt, placed count | `PartsEstimate` from `src/estimator/parts.ts` |
+| Marker, parts, ink of the squares | `ItemsEstimate` from `src/estimator/items.ts` |
 | Cell geometry in mm | `src/model/layout.ts` |
 | Link lengths, forward kinematics | `src/model/kinematics.ts` |
 | Conveyor, sensor, E-stop state | PLC snapshot in the store |
@@ -118,8 +118,9 @@ the squares drawn on the board as the Stäubli moves.
 | Belt sensors, emitter glows when on | `Sensor Jaka`, `Sensor Stäubli` |
 | Robots | Joint values (live or estimated) |
 | Part in a gripper, attached to the tool frame | `RobotEstimate.holding` |
-| Part on the belt | `PartsEstimate.belt` |
-| Placed parts stacked at the destination | `PartsEstimate.placed` |
+| Marker on the conveyor, in a gripper or in a holder | `ItemsEstimate.marker`, `.belt` |
+| Parts at the source, in the Stäubli gripper or on the board | `ItemsEstimate.parts` |
+| Ink of the squares on the board | `ItemsEstimate.ink` |
 | Phase labels above each robot | `RobotEstimate.phase` (drei `Html`) |
 | E-stop: red frame and tint | Emergency input |
 | No data: greyed scene and message | Staleness, as in 2D |

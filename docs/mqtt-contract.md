@@ -26,9 +26,10 @@ The website marks data older than 5 s as stale, so the publisher must send
 - `do`: exactly 12 values, X20DO9322 channels 1..12.
 - Values may be `true`/`false` or `1`/`0`.
 - `ts` (optional): milliseconds since epoch at the publisher.
-- `step`, `count`, `running` (optional): the PLC's `Etapa`, `iContador` and
-  `Ligar`. Sent by the bridge ([step 3](publishing-plan/03-bridge.md)); the
-  website does not show them yet and ignores them.
+- `step`, `count`, `running` (optional, integers 0–255 / boolean): the PLC's
+  `Etapa`, `iContador` and `Ligar`. Sent by the bridge
+  ([step 3](publishing-plan/03-bridge.md)). The website shows the step and
+  the completed cycles; without `step` it derives the step from the outputs.
 
 Channel meaning (Table I of the cell handout):
 
