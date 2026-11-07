@@ -19,9 +19,10 @@ program and a website that mirrors the cell state live over MQTT.
 The robots and the PLC talk only through digital I/O (handshake bits). The
 full channel map is in [mqtt-contract.md](mqtt-contract.md).
 
-The application: the Jaka sends a marker over the conveyor while the Stäubli
-places two parts on a whiteboard; then the Stäubli draws a square around each
-part ([whiteboard-application.md](whiteboard-application.md)).
+The application: the Jaka sends a plate carrying two parts over the
+conveyor; the Stäubli puts the plate on its table, stands the parts on a
+whiteboard and draws a square around each one with a marker
+([whiteboard-application.md](whiteboard-application.md)).
 
 ## Components in this repository
 
@@ -35,7 +36,7 @@ robotcell-twin/
     ├── plc-program.md          PLC program, HMI and project origin
     ├── robot-estimation.md     How robot motion is estimated from PLC signals
     ├── 3d-plan.md              Plan for the 3D view
-    ├── whiteboard-application.md  The application: marker + whiteboard, signals, robot programs
+    ├── whiteboard-application.md  The application: plate, parts, whiteboard, signals, robot programs
     ├── architecture.md         Website design decisions (2D/3D, stack, hosting)
     ├── mqtt-contract.md        Topics and payloads
     └── publishing-plan/        Step-by-step plan to get live cell data online

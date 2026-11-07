@@ -48,25 +48,25 @@ application ([whiteboard-application.md](whiteboard-application.md)).
 
 | Variable | Address | Meaning |
 |---|---|---|
-| `Jaka_DO7` | DI9371 ch 1 | DONE: marker on the conveyor |
+| `Jaka_DO7` | DI9371 ch 1 | DONE: plate on the conveyor |
 | `Jaka_DO6` | DI9371 ch 2 | Spare |
-| `Jaka_DO5` | DI9371 ch 3 | Pulse: marker gripped (used by the twin only) |
-| `Staubli_DO4` | DI9371 ch 5 | DONE: both parts on the board |
+| `Jaka_DO5` | DI9371 ch 3 | Pulse: plate gripped (used by the twin only) |
+| `Staubli_DO4` | DI9371 ch 5 | DONE: plate on the stand, both parts on the board |
 | `Staubli_DO5` | DI9371 ch 6 | DONE: squares drawn, marker stored |
 | `Staubli_DO6` | DI9371 ch 7 | Pulse: one part placed |
 | `Staubli_DO7` | DI9371 ch 8 | Pulse: one square drawn |
-| `Sensor_Staubli` | DI9371 ch 9 | Marker at the Stäubli end of the conveyor |
-| `Sensor_Jaka` | DI9371 ch 10 | Marker at the Jaka end of the conveyor |
+| `Sensor_Staubli` | DI9371 ch 9 | Plate at the Stäubli end of the conveyor |
+| `Sensor_Jaka` | DI9371 ch 10 | Plate at the Jaka end of the conveyor |
 | `Emergencia` | DI9371 ch 12 | TRUE = safe |
-| `Jaka_DI3` | DO9322 ch 1 | CMD: put the marker on the conveyor |
+| `Jaka_DI3` | DO9322 ch 1 | CMD: put the plate on the conveyor |
 | `Jaka_DI2` | DO9322 ch 2 | Enable, TRUE while a cycle runs |
 | `Jaka_DI1` | DO9322 ch 3 | Spare |
-| `Staubli_DI12` | DO9322 ch 5 | CMD: place the two parts on the board |
+| `Staubli_DI12` | DO9322 ch 5 | CMD: plate to the stand, both parts to the board |
 | `Staubli_DI13` | DO9322 ch 6 | Enable, TRUE while a cycle runs |
-| `Staubli_DI14` | DO9322 ch 7 | CMD: pick the marker and draw |
+| `Staubli_DI14` | DO9322 ch 7 | CMD: pick the marker, draw, put it back |
 | `Staubli_DI15` | DO9322 ch 8 | Spare |
 | `Esteira_StaubliJaka` | DO9322 ch 11 | Spare (always FALSE) |
-| `Esteira_JakaStaubli` | DO9322 ch 12 | Carries the marker to the Stäubli |
+| `Esteira_JakaStaubli` | DO9322 ch 12 | Carries the plate to the Stäubli |
 
 ## Sequence
 
@@ -76,14 +76,16 @@ clears DONE. There are no timers in the sequence.
 
 | `Etapa` | Does | Next when |
 |---|---|---|
-| 0 | Idle. On start: reset flags and counters, set `Jaka_DI3` and `Staubli_DI12` | `Ligar AND Emergencia` |
-| 1 | In parallel: `Jaka_DO7 AND Sensor_Jaka` → clear `Jaka_DI3`, start the conveyor. Conveyor `AND Sensor_Staubli` → stop it. `Staubli_DO4` → clear `Staubli_DI12` | Marker arrived, parts on the board, `Jaka_DO7` and `Staubli_DO4` cleared |
-| 2 | Set `Staubli_DI14`; on `Staubli_DO5` clear it | `Staubli_DO5` |
-| 3 | Count the cycle, clear `Ligar` | `Staubli_DO5` cleared → 0 |
+| 0 | Idle. On start: reset flags and counters, set `Jaka_DI3` | `Ligar AND Emergencia` |
+| 1 | `Jaka_DO7 AND Sensor_Jaka` → clear `Jaka_DI3`, start the conveyor. Conveyor `AND Sensor_Staubli` → stop it | Plate arrived and `Jaka_DO7` cleared |
+| 2 | Set `Staubli_DI12`; on `Staubli_DO4` clear it | `Staubli_DO4` |
+| 3 | Wait for the Stäubli to clear DONE | `Staubli_DO4` cleared |
+| 4 | Set `Staubli_DI14`; on `Staubli_DO5` clear it | `Staubli_DO5` |
+| 5 | Count the cycle, clear `Ligar` | `Staubli_DO5` cleared → 0 |
 
 - One run per start: `Ligar` is cleared at the end of the cycle, so the
-  operator presses **Ligar** again for the next run (after putting the marker
-  back at the Jaka and taking the parts off the board).
+  operator presses **Ligar** again for the next run (after putting the plate
+  with both parts back at the Jaka and taking the parts off the board).
 - Stop (**Desligar**) or E-stop: every command, enable and conveyor goes
   FALSE and `Etapa` returns to 0. E-stop also clears `Ligar`, so releasing it
   never restarts the cell by itself.
@@ -105,10 +107,10 @@ the panel.*
 | Element | Variable |
 |---|---|
 | Ligar / Desligar | `Ligar` (set to 1 / 0) |
-| Step lamps: Jaka, conveyor, parts, drawing, cycle done | `iCorJaka`, `iCorEsteira`, `iCorPecas`, `iCorDesenho`, `iCorConcluido` |
+| Step lamps: Jaka (plate on the conveyor), conveyor, Stäubli parts, drawing, cycle done | `iCorJaka`, `iCorEsteira`, `iCorPecas`, `iCorDesenho`, `iCorConcluido` |
 | Parts on the board, squares, cycle time (s), completed cycles | `iPecasNoQuadro`, `iQuadrados`, `iTempoCiclo_s`, `iContador` |
 | Whiteboard: parts and squares light up | `iCorPeca1/2`, `iCorQuadrado1/2` |
-| Marker position: Jaka / conveyor / Stäubli | `iCorMarcJaka`, `iCorMarcEsteira`, `iCorMarcStaubli` (from `iMarcador`) |
+| Plate position: Jaka / conveyor / Stäubli | `iCorPlacaJaka`, `iCorPlacaEsteira`, `iCorPlacaStaubli` (from `iPlaca`) |
 | E-stop lamp | `iCorEmergencia` |
 | Progress bar 0..4 | `iProgresso` (parts + squares) |
 

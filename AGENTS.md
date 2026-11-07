@@ -14,7 +14,7 @@ Start with `docs/README.md` for the full picture.
 | Path | Content |
 |---|---|
 | `src/model/` | I/O map (`cell.ts`), robot axes (`robots.ts`), cell layout in mm (`layout.ts`), forward/inverse kinematics (`kinematics.ts`), taught poses (`poses.ts`), payload parsing (`messages.ts`) |
-| `src/estimator/` | Robot phase, joints and gripper (`engine.ts`, `tasks.ts`), marker/parts/ink (`items.ts`), store runner (`runner.ts`) |
+| `src/estimator/` | Robot phase, joints and gripper (`engine.ts`, `tasks.ts`), plate/parts/marker/ink (`items.ts`), store runner (`runner.ts`) |
 | `src/mqtt/` | Topics and the single broker connection (subscribe only) |
 | `src/sim/` | In-browser demo; `timeline.json` is one run of the PLC I/O, shared with the MQTT simulator |
 | `src/components/`, `src/hooks/` | UI |
