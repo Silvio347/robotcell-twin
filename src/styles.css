@@ -493,11 +493,7 @@ button.secondary {
   font-variant-numeric: tabular-nums;
 }
 
-.svg-carrier {
-  fill: #59636e;
-  stroke: #0b0f14;
-  stroke-width: 0.6;
-}
+
 
 .panel-head {
   display: flex;
@@ -580,4 +576,19 @@ button.secondary {
   font-size: 0.75rem;
   white-space: nowrap;
   pointer-events: none;
+.svg-part-body {
+  fill: none;
+  stroke: #0b0f14;
+  stroke-width: 0.6;
+  stroke-dasharray: 1.5 1.5;
+}
+
+.svg-plate {
+  fill: #7a8794;
+  stroke: #0b0f14;
+  stroke-width: 0.8;
+}
+
+.svg-plate-hole {
+  fill: #2b3036;
 }

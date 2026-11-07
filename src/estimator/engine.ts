@@ -49,7 +49,7 @@ export interface SegmentDef {
   meta?: SegmentMeta;
 }
 
-export type ItemId = 'marker' | 'part1' | 'part2';
+export type ItemId = 'plate' | 'marker' | 'part1' | 'part2';
 
 export interface SegmentMeta {
   /** Object gripped or released at the grip point. */

@@ -3,17 +3,17 @@
 import { Line } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
-import { CanvasTexture, Group, Mesh, MeshStandardMaterial, RepeatWrapping } from 'three';
+import { CanvasTexture, Group, MeshStandardMaterial, RepeatWrapping } from 'three';
 import type { SignalId } from '../model/cell';
-import { LAYOUT, type ConveyorLayout, type Point2 } from '../model/layout';
+import { LAYOUT, PART_HEIGHT, plateHole, type ConveyorLayout, type Point2 } from '../model/layout';
 import { signalValue } from '../model/messages';
 import { useTwinStore } from '../state/store';
 import { frameTime, robotAt } from './frame';
 
-const { bounds, board, part, marker } = LAYOUT;
+const { bounds, board, part, plate, marker } = LAYOUT;
 const TABLE_THICKNESS = 30;
-/** Nominal belt speed for the stripe animation (the demo run takes 3.5 s). */
-const BELT_TRAVEL_MS = 3500;
+/** Nominal belt speed for the stripe animation (the demo run takes about 4 s). */
+const BELT_TRAVEL_MS = 4000;
 
 function stripeTexture(): CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -79,9 +79,11 @@ function Sensor({ id, at }: { id: SignalId; at: Point2 }) {
 }
 
 function Pad({ at, size, height, color }: { at: Point2 & { z?: number }; size: number; height: number; color: string }) {
+  // Square pads, except the plate stand which follows the plate's footprint.
+  const depth = size > plate.length ? plate.width + 10 : size;
   return (
     <mesh position={[at.x, at.y, (at.z ?? 0) + height / 2]}>
-      <boxGeometry args={[size, size, height]} />
+      <boxGeometry args={[size, depth, height]} />
       <meshStandardMaterial color={color} />
     </mesh>
   );
@@ -103,11 +105,9 @@ export function StaticCell() {
         <boxGeometry args={[board.width, board.depth, board.z]} />
         <meshStandardMaterial color="#fafbfc" roughness={0.4} />
       </mesh>
-      {LAYOUT.partSource.map((p, i) => (
-        <Pad key={i} at={p} size={part.size + 16} height={2} color="#3a4552" />
-      ))}
-      <Pad at={LAYOUT.jakaMarkerHolder} size={marker.carrier + 10} height={marker.standOffset + 25} color="#3a4552" />
-      <Pad at={LAYOUT.staubliMarkerHolder} size={marker.carrier + 10} height={marker.standOffset + 25} color="#3a4552" />
+      {/* Plate stand on the Stäubli table and the marker holder. */}
+      <Pad at={{ ...LAYOUT.staubliPlateSpot, z: 0 }} size={plate.length + 10} height={LAYOUT.staubliPlateSpot.z} color="#3a4552" />
+      <Pad at={{ ...LAYOUT.staubliMarkerHolder, z: 0 }} size={40} height={LAYOUT.staubliMarkerHolder.z} color="#3a4552" />
     </group>
   );
 }
@@ -127,59 +127,94 @@ export function Ink() {
   );
 }
 
-/** Marker (standing upright, tip down) and the two parts. */
+/** One big-head part, origin at the bottom of its body. */
+function PartMesh({ refCb }: { refCb: (g: Group | null) => void }) {
+  return (
+    <group ref={refCb}>
+      <mesh position={[0, 0, part.bodyHeight / 2]} rotation-x={Math.PI / 2}>
+        <cylinderGeometry args={[part.bodyDiameter / 2, part.bodyDiameter / 2, part.bodyHeight, 20]} />
+        <meshStandardMaterial color="#d18f2c" />
+      </mesh>
+      <mesh position={[0, 0, part.bodyHeight + part.headHeight / 2]} rotation-x={Math.PI / 2}>
+        <cylinderGeometry args={[part.headDiameter / 2, part.headDiameter / 2, part.headHeight, 24]} />
+        <meshStandardMaterial color="#e3a33b" />
+      </mesh>
+    </group>
+  );
+}
+
+/** Plate (origin at its bottom centre), the two parts and the marker. */
 export function Items3D() {
+  const plateRef = useRef<Group>(null);
   const markerRef = useRef<Group>(null);
-  const carrierRef = useRef<Mesh>(null);
-  const partRefs = useRef<(Mesh | null)[]>([]);
+  const partRefs = useRef<(Group | null)[]>([]);
 
   useFrame((state) => {
     const items = useTwinStore.getState().items;
     const now = frameTime(state.clock.elapsedTime);
     const visible = items !== null;
+    if (plateRef.current) plateRef.current.visible = visible;
     if (markerRef.current) markerRef.current.visible = visible;
-    if (!items) {
-      partRefs.current.forEach((m) => m && (m.visible = false));
-      if (carrierRef.current) carrierRef.current.visible = false;
-      return;
-    }
+    partRefs.current.forEach((g) => g && (g.visible = visible));
+    if (!items) return;
 
-    // Marker: position of its tip.
+    // Plate: bottom centre.
     const belt = LAYOUT.conveyors.jakaToStaubli;
-    let tip = { x: 0, y: 0, z: 0 };
-    if (items.marker === 'jakaHolder') tip = { ...LAYOUT.jakaMarkerHolder, z: LAYOUT.jakaMarkerHolder.z + marker.standOffset };
-    else if (items.marker === 'staubliHolder') tip = { ...LAYOUT.staubliMarkerHolder, z: LAYOUT.staubliMarkerHolder.z + marker.standOffset };
-    else if (items.marker === 'belt') {
+    let p = { x: 0, y: 0, z: 0 };
+    if (items.plate === 'jakaTable') p = { ...LAYOUT.jakaPlateStart };
+    else if (items.plate === 'staubliTable') p = { ...LAYOUT.staubliPlateSpot };
+    else if (items.plate === 'belt') {
       const t = items.belt;
-      tip = { x: belt.from.x + (belt.to.x - belt.from.x) * t, y: belt.from.y + (belt.to.y - belt.from.y) * t, z: belt.height + marker.standOffset };
+      p = { x: belt.from.x + (belt.to.x - belt.from.x) * t, y: belt.from.y + (belt.to.y - belt.from.y) * t, z: belt.height };
     } else {
-      const tool = robotAt(items.marker === 'jakaGripper' ? 'jaka' : 'staubli', now).tool;
-      tip = { x: tool.x, y: tool.y, z: tool.z - marker.tipReach };
+      const tool = robotAt(items.plate === 'jakaGripper' ? 'jaka' : 'staubli', now).tool;
+      p = { x: tool.x, y: tool.y, z: tool.z - plate.thickness / 2 };
     }
-    markerRef.current?.position.set(tip.x, tip.y, tip.z);
-    if (carrierRef.current) {
-      carrierRef.current.visible = items.marker === 'belt';
-      carrierRef.current.position.set(tip.x, tip.y, belt.height + 12);
-    }
+    plateRef.current?.position.set(p.x, p.y, p.z);
 
-    // Parts.
+    // Parts: bottom of the body. In the plate the body sits in its hole.
     const staubliTool = robotAt('staubli', now).tool;
     items.parts.forEach((place, i) => {
-      const mesh = partRefs.current[i];
-      if (!mesh) return;
-      mesh.visible = true;
+      const g = partRefs.current[i];
+      if (!g) return;
       const at =
-        place === 'source'
-          ? { ...LAYOUT.partSource[i]!, z: part.height / 2 }
+        place === 'plate'
+          ? { ...plateHole(p, plate.partHoles[i]!), z: p.z }
           : place === 'board'
-            ? { ...LAYOUT.boardSlots[i]!, z: board.z + part.height / 2 }
-            : { x: staubliTool.x, y: staubliTool.y, z: staubliTool.z - part.height / 2 };
-      mesh.position.set(at.x, at.y, at.z);
+            ? { ...LAYOUT.boardSlots[i]!, z: board.z }
+            : { x: staubliTool.x, y: staubliTool.y, z: staubliTool.z - (PART_HEIGHT - part.headHeight / 2) };
+      g.position.set(at.x, at.y, at.z);
     });
+
+    // Marker: position of its tip.
+    const holder = LAYOUT.staubliMarkerHolder;
+    const tip =
+      items.marker === 'holder'
+        ? { x: holder.x, y: holder.y, z: holder.z + marker.standOffset }
+        : (() => {
+            const tool = robotAt('staubli', now).tool;
+            return { x: tool.x, y: tool.y, z: tool.z - marker.tipReach };
+          })();
+    markerRef.current?.position.set(tip.x, tip.y, tip.z);
   });
 
   return (
     <group>
+      <group ref={plateRef}>
+        <mesh position={[0, 0, plate.thickness / 2]}>
+          <boxGeometry args={[plate.length, plate.width, plate.thickness]} />
+          <meshStandardMaterial color="#7a8794" />
+        </mesh>
+        {[0, 1, 2].map((h) => (
+          <mesh key={h} position={[(h - 1) * plate.holePitch, 0, plate.thickness + 0.3]}>
+            <circleGeometry args={[part.bodyDiameter / 2 + 1, 24]} />
+            <meshStandardMaterial color="#1f252b" />
+          </mesh>
+        ))}
+      </group>
+      {[0, 1].map((i) => (
+        <PartMesh key={i} refCb={(g) => void (partRefs.current[i] = g)} />
+      ))}
       <group ref={markerRef}>
         <mesh position={[0, 0, marker.length / 2]} rotation-x={Math.PI / 2}>
           <cylinderGeometry args={[marker.diameter / 2, marker.diameter / 2, marker.length, 16]} />
@@ -194,16 +229,6 @@ export function Items3D() {
           <meshStandardMaterial color="#1d2b8f" />
         </mesh>
       </group>
-      <mesh ref={carrierRef}>
-        <boxGeometry args={[marker.carrier, marker.carrier, 24]} />
-        <meshStandardMaterial color="#59636e" />
-      </mesh>
-      {[0, 1].map((i) => (
-        <mesh key={i} ref={(m) => void (partRefs.current[i] = m)}>
-          <boxGeometry args={[part.size, part.size, part.height]} />
-          <meshStandardMaterial color="#e3a33b" />
-        </mesh>
-      ))}
     </group>
   );
 }

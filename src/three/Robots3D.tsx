@@ -43,14 +43,22 @@ function Gripper({ fingersRef, bodyHeight = 40 }: { fingersRef: React.RefObject<
   );
 }
 
-/** Opens the fingers when empty and closes them on the held object. */
+/** Opens the fingers when empty and sets them to the held object's size. */
 function useFingers(robot: 'jaka' | 'staubli') {
   const ref = useRef<Group>(null);
   useFrame(() => {
     const holding = useTwinStore.getState().estimates[robot]?.holding ?? false;
     const items = useTwinStore.getState().items;
-    const holdsMarker = items?.marker === (robot === 'jaka' ? 'jakaGripper' : 'staubliGripper');
-    const gap = !holding ? 60 : holdsMarker ? LAYOUT.marker.diameter : LAYOUT.part.size;
+    const holdsPlate = items?.plate === (robot === 'jaka' ? 'jakaGripper' : 'staubliGripper');
+    const holdsMarker = robot === 'staubli' && items?.marker === 'gripper';
+    // Plate: internal grip, fingers open inside its middle hole.
+    const gap = !holding
+      ? 60
+      : holdsPlate
+        ? LAYOUT.part.bodyDiameter
+        : holdsMarker
+          ? LAYOUT.marker.diameter
+          : LAYOUT.part.headDiameter;
     ref.current?.children.forEach((child) => {
       const side = (child.userData as { side?: number }).side ?? 1;
       child.position.x = side * (gap / 2 + 4);

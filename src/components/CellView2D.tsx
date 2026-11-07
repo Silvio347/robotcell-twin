@@ -1,14 +1,14 @@
 // Top view of the cell, drawn to scale from src/model/layout.ts (mm).
 // Arms come from forward kinematics of the joints (live when available,
-// otherwise estimated from the PLC), marker, parts and ink from the item
-// estimator.
+// otherwise estimated from the PLC), plate, parts, marker and ink from the
+// item estimator.
 // Tool height is shown on a gauge next to each robot because a top view
 // cannot show it.
 
 import { useRobotView } from '../hooks/useRobotView';
 import { pointsOfRobot, type RobotId, type SignalId } from '../model/cell';
 import { jakaFk, SCARA, scaraFk } from '../model/kinematics';
-import { LAYOUT, toCellFrame, type ConveyorLayout, type Point2, type Point3 } from '../model/layout';
+import { LAYOUT, plateHole, toCellFrame, type ConveyorLayout, type Point2, type Point3 } from '../model/layout';
 import { isEmergencyActive, signalValue, type PlcIoSnapshot } from '../model/messages';
 import { useTwinStore } from '../state/store';
 
@@ -54,22 +54,38 @@ function Led({ x, y, value, label }: { x: number; y: number; value: boolean | nu
   );
 }
 
-function Part({ at, faded = false }: { at: Point2; faded?: boolean }) {
-  const size = LAYOUT.part.size * K;
-  const p = sp(at);
-  return (
-    <rect x={p.x - size / 2} y={p.y - size / 2} width={size} height={size} rx={2} className={`svg-part ${faded ? 'is-faded' : ''}`} />
-  );
-}
-
-/** The marker stands upright, so from above it is a circle (in its carrier). */
-function Marker({ at, carrier = false }: { at: Point2; carrier?: boolean }) {
-  const d = LAYOUT.marker.diameter * K;
-  const c = LAYOUT.marker.carrier * K;
+/** A standing part seen from above: the head with the body outline inside. */
+function Part({ at }: { at: Point2 }) {
   const p = sp(at);
   return (
     <g>
-      {carrier && <rect x={p.x - c / 2} y={p.y - c / 2} width={c} height={c} rx={2} className="svg-carrier" />}
+      <circle cx={p.x} cy={p.y} r={(LAYOUT.part.headDiameter / 2) * K} className="svg-part" />
+      <circle cx={p.x} cy={p.y} r={(LAYOUT.part.bodyDiameter / 2) * K} className="svg-part-body" />
+    </g>
+  );
+}
+
+/** The plate seen from above, with its 3 holes. */
+function Plate({ at }: { at: Point2 }) {
+  const { length, width } = LAYOUT.plate;
+  const p = sp(at);
+  return (
+    <g>
+      <rect x={p.x - (length * K) / 2} y={p.y - (width * K) / 2} width={length * K} height={width * K} rx={3} className="svg-plate" />
+      {[0, 1, 2].map((h) => {
+        const c = sp(plateHole(at, h));
+        return <circle key={h} cx={c.x} cy={c.y} r={(LAYOUT.part.bodyDiameter / 2 + 1) * K} className="svg-plate-hole" />;
+      })}
+    </g>
+  );
+}
+
+/** The marker stands upright, so from above it is a circle. */
+function Marker({ at }: { at: Point2 }) {
+  const d = LAYOUT.marker.diameter * K;
+  const p = sp(at);
+  return (
+    <g>
       <circle cx={p.x} cy={p.y} r={d / 2 + 1} className="svg-marker" />
       <circle cx={p.x} cy={p.y} r={d / 4} className="svg-marker-tip" />
     </g>
@@ -178,21 +194,15 @@ function SignalPanel({ robot, io, x }: { robot: RobotId; io: PlcIoSnapshot | nul
   );
 }
 
-function lerp(a: Point2, b: Point2, t: number): Point2 {
-  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
-}
-
 function Fixtures() {
-  const { board, boardSlots, partSource, jakaMarkerHolder, staubliMarkerHolder, squareHalf } = LAYOUT;
+  const { board, boardSlots, jakaPlateStart, staubliPlateSpot, staubliMarkerHolder, squareHalf, plate } = LAYOUT;
   const b = sp({ x: board.x - board.width / 2, y: board.y + board.depth / 2 });
-  const holder = (at: Point2, label: string) => {
+  const area = (at: Point2, w: number, h: number, label: string) => {
     const p = sp(at);
-    const w = (LAYOUT.marker.carrier + 20) * K;
-    const h = w;
     return (
       <g>
-        <rect x={p.x - w / 2} y={p.y - h / 2} width={w} height={h} className="svg-area" />
-        <text x={p.x} y={p.y + h / 2 + 11} textAnchor="middle" className="svg-small">
+        <rect x={p.x - (w * K) / 2} y={p.y - (h * K) / 2} width={w * K} height={h * K} className="svg-area" />
+        <text x={p.x} y={p.y + (h * K) / 2 + 11} textAnchor="middle" className="svg-small">
           {label}
         </text>
       </g>
@@ -208,18 +218,15 @@ function Fixtures() {
         const c = sp({ x: slot.x - squareHalf, y: slot.y + squareHalf });
         return <rect key={i} x={c.x} y={c.y} width={2 * squareHalf * K} height={2 * squareHalf * K} className="svg-square-guide" />;
       })}
-      {partSource.map((src, i) => {
-        const p = sp(src);
-        const size = (LAYOUT.part.size + 16) * K;
-        return <rect key={i} x={p.x - size / 2} y={p.y - size / 2} width={size} height={size} className="svg-area" />;
-      })}
-      <text x={sx(partSource[0]!.x)} y={sy(partSource[0]!.y) - 14} textAnchor="middle" className="svg-small">
-        Parts
-      </text>
-      {holder(jakaMarkerHolder, 'Marker (start)')}
-      {holder(staubliMarkerHolder, 'Marker holder')}
+      {area(jakaPlateStart, plate.length + 20, plate.width + 20, 'Plate (start)')}
+      {area(staubliPlateSpot, plate.length + 20, plate.width + 20, 'Plate spot')}
+      {area(staubliMarkerHolder, 50, 50, 'Marker holder')}
     </g>
   );
+}
+
+function lerpPoint(a: Point2, b: Point2, t: number): Point2 {
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
 }
 
 function Items({ now }: { now: number }) {
@@ -231,16 +238,17 @@ function Items({ now }: { now: number }) {
   const jakaTool = jaka.joints ? armGeometry('jaka', jaka.joints).tool : null;
   const staubliTool = staubli.joints ? armGeometry('staubli', staubli.joints).tool : null;
 
-  const markerAt: Point2 | null =
-    items.marker === 'jakaHolder'
-      ? LAYOUT.jakaMarkerHolder
-      : items.marker === 'staubliHolder'
-        ? LAYOUT.staubliMarkerHolder
-        : items.marker === 'belt'
-          ? lerp(belt.from, belt.to, items.belt)
-          : items.marker === 'jakaGripper'
+  const plateAt: Point2 | null =
+    items.plate === 'jakaTable'
+      ? LAYOUT.jakaPlateStart
+      : items.plate === 'staubliTable'
+        ? LAYOUT.staubliPlateSpot
+        : items.plate === 'belt'
+          ? lerpPoint(belt.from, belt.to, items.belt)
+          : items.plate === 'jakaGripper'
             ? jakaTool
             : staubliTool;
+  const markerAt = items.marker === 'holder' ? LAYOUT.staubliMarkerHolder : staubliTool;
 
   return (
     <g>
@@ -249,12 +257,13 @@ function Items({ now }: { now: number }) {
           <polyline key={i} points={line.map((p) => `${sx(p.x)},${sy(p.y)}`).join(' ')} className="svg-ink" />
         ) : null,
       )}
+      {plateAt && <Plate at={plateAt} />}
       {items.parts.map((place, i) => {
-        if (place === 'source') return <Part key={i} at={LAYOUT.partSource[i]!} />;
+        if (place === 'plate') return plateAt ? <Part key={i} at={plateHole(plateAt, LAYOUT.plate.partHoles[i]!)} /> : null;
         if (place === 'board') return <Part key={i} at={LAYOUT.boardSlots[i]!} />;
         return staubliTool ? <Part key={i} at={staubliTool} /> : null;
       })}
-      {markerAt && <Marker at={markerAt} carrier={items.marker === 'belt'} />}
+      {markerAt && <Marker at={markerAt} />}
     </g>
   );
 }

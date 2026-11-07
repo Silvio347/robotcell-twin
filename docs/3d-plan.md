@@ -20,9 +20,9 @@ What is in it:
   so the motion is smooth at the display frame rate; live joints win when
   fresh.
 - Table, both conveyors (belt texture moves while the output is on), belt
-  sensors that light up, whiteboard, part source pads, marker holders.
-- Marker (upright, in its carrier on the conveyor), both parts, ink of the
-  squares, gripper fingers that close on the held object.
+  sensors that light up, whiteboard, plate stand, marker holder.
+- Plate with 3 holes carrying the two big-head parts, parts standing on the
+  board, marker, ink of the squares, gripper fingers sized to the held object.
 - Phase labels above the robots, camera presets (overview, Stäubli,
   whiteboard, Jaka) and orbit controls, red frame on E-stop, grey overlay
   when there is no live data.
@@ -39,7 +39,7 @@ computed for the 2D view:
 |---|---|
 | Joint values per robot (live or estimated) | `useRobotView` (`src/hooks/useRobotView.ts`) |
 | Gripper state, phase, progress | `RobotEstimate` from `src/estimator/engine.ts` |
-| Marker, parts, ink of the squares | `ItemsEstimate` from `src/estimator/items.ts` |
+| Plate, parts, marker, ink of the squares | `ItemsEstimate` from `src/estimator/items.ts` |
 | Cell geometry in mm | `src/model/layout.ts` |
 | Link lengths, forward kinematics | `src/model/kinematics.ts` |
 | Conveyor, sensor, E-stop state | PLC snapshot in the store |
@@ -93,7 +93,7 @@ Models in the cell (from the nameplates):
 
 `RMHZ2-20D-091N` is not a robot model: it is the gripper's part number.
 Confirm it was read on the Jaka's tool and whether the Stäubli has its own
-gripper (it must hold the parts and the marker, see
+gripper (it must hold the plate, the parts and the marker, see
 [whiteboard-application.md](whiteboard-application.md)).
 
 What is available publicly:
@@ -135,8 +135,8 @@ mount), otherwise J3 heights will be wrong in 3D.
 ## Scene contents
 
 For the whiteboard application the scene changes as described in
-[whiteboard-application.md](whiteboard-application.md#in-the-twin): marker
-instead of a part on the belt, two parts lying on the board, and the ink of
+[whiteboard-application.md](whiteboard-application.md#in-the-twin): the plate
+with its parts on the belt, the parts standing on the board, and the ink of
 the squares drawn on the board as the Stäubli moves.
 
 | Element | Driven by |
@@ -146,8 +146,9 @@ the squares drawn on the board as the Stäubli moves.
 | Belt sensors, emitter glows when on | `Sensor Jaka`, `Sensor Stäubli` |
 | Robots | Joint values (live or estimated) |
 | Part in a gripper, attached to the tool frame | `RobotEstimate.holding` |
-| Marker on the conveyor, in a gripper or in a holder | `ItemsEstimate.marker`, `.belt` |
-| Parts at the source, in the Stäubli gripper or on the board | `ItemsEstimate.parts` |
+| Plate at the Jaka, on the conveyor, in a gripper or on the stand | `ItemsEstimate.plate`, `.belt` |
+| Parts in the plate, in the Stäubli gripper or on the board | `ItemsEstimate.parts` |
+| Marker in its holder or in the Stäubli gripper | `ItemsEstimate.marker` |
 | Ink of the squares on the board | `ItemsEstimate.ink` |
 | Phase labels above each robot | `RobotEstimate.phase` (drei `Html`) |
 | E-stop: red frame and tint | Emergency input |

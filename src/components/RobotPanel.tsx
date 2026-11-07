@@ -16,7 +16,8 @@ function formatPoint(p: Point3): string {
 
 function heldItem(robot: RobotId, items: ItemsEstimate | null): string {
   if (!items) return 'something';
-  if (items.marker === (robot === 'jaka' ? 'jakaGripper' : 'staubliGripper')) return 'the marker';
+  if (items.plate === (robot === 'jaka' ? 'jakaGripper' : 'staubliGripper')) return 'the plate';
+  if (robot === 'staubli' && items.marker === 'gripper') return 'the marker';
   const part = robot === 'staubli' ? items.parts.indexOf('gripper') : -1;
   return part >= 0 ? `part ${part + 1}` : 'something';
 }

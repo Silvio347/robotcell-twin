@@ -11,13 +11,13 @@
 // Then set POSES_ARE_PLACEHOLDERS to false.
 
 import { jakaIkDown, SCARA, scaraIk } from './kinematics';
-import { LAYOUT, toRobotFrame, type Point2, type Point3 } from './layout';
+import { LAYOUT, PART_HEIGHT, plateHole, toRobotFrame, type Point2, type Point3 } from './layout';
 
 export type Pose = readonly number[];
 
 export const POSES_ARE_PLACEHOLDERS = true;
 
-const { approach, part, marker, board } = LAYOUT;
+const { approach, part, plate, marker, board } = LAYOUT;
 const beltTop = LAYOUT.conveyors.jakaToStaubli.height;
 const top = SCARA.zTop;
 const at = (p: Point2, z: number): Point3 => ({ x: p.x, y: p.y, z });
@@ -25,43 +25,51 @@ const at = (p: Point2, z: number): Point3 => ({ x: p.x, y: p.y, z });
 const staubli = (p: Point3) => scaraIk(toRobotFrame('staubli', p));
 const jaka = (p: Point3) => jakaIkDown(toRobotFrame('jaka', p));
 
+/** Gripper tip height with the fingers inside the plate's grip hole, plate lying on `surface`. */
+const plateGrip = (surface: number) => surface + plate.thickness / 2;
+/** Gripper tip height that grips a part by the middle of its head; the part stands on `surface`. */
+const partGrip = (surface: number) => surface + PART_HEIGHT - part.headHeight / 2;
 /** Gripper tip height that grips the upright marker standing on `surface`. */
 const markerGrip = (surface: number) => surface + marker.standOffset + marker.tipReach;
 /** Gripper tip height while the marker tip touches the board. */
 export const DRAW_Z = board.z + marker.tipReach;
 
-const jakaHolder = LAYOUT.jakaMarkerHolder;
+const plateStart = LAYOUT.jakaPlateStart;
 const beltStart = LAYOUT.conveyors.jakaToStaubli.from;
 const beltEnd = LAYOUT.conveyors.jakaToStaubli.to;
+const spot = LAYOUT.staubliPlateSpot;
+const holder = LAYOUT.staubliMarkerHolder;
+/** A part in the plate stands on the plate's bottom surface. */
+const holeA = plateHole(spot, plate.partHoles[0]!);
+const holeB = plateHole(spot, plate.partHoles[1]!);
+const [slot1, slot2] = LAYOUT.boardSlots as [Point2, Point2];
 
 /** Jaka Minicobo, [J1..J6] in degrees. */
 export const JAKA_POSES = {
   home: jaka(LAYOUT.jakaHome),
-  aboveMarker: jaka(at(jakaHolder, markerGrip(jakaHolder.z) + approach)),
-  pickMarker: jaka(at(jakaHolder, markerGrip(jakaHolder.z))),
-  aboveConveyor: jaka(at(beltStart, markerGrip(beltTop) + approach)),
-  placeConveyor: jaka(at(beltStart, markerGrip(beltTop))),
+  abovePlate: jaka(at(plateStart, plateGrip(plateStart.z) + approach)),
+  pickPlate: jaka(at(plateStart, plateGrip(plateStart.z))),
+  aboveConveyor: jaka(at(beltStart, plateGrip(beltTop) + approach)),
+  placeConveyor: jaka(at(beltStart, plateGrip(beltTop))),
 } satisfies Record<string, Pose>;
-
-const holder = LAYOUT.staubliMarkerHolder;
-const [src1, src2] = LAYOUT.partSource as [Point2, Point2];
-const [slot1, slot2] = LAYOUT.boardSlots as [Point2, Point2];
 
 /** Stäubli SCARA, [J1 deg, J2 deg, J3 mm, J4 deg]. J3 = 0 is fully up. */
 export const STAUBLI_POSES = {
   home: staubli(at(LAYOUT.staubliHome, top)),
-  aboveSource1: staubli(at(src1, top)),
-  pickSource1: staubli(at(src1, part.height)),
-  aboveSource2: staubli(at(src2, top)),
-  pickSource2: staubli(at(src2, part.height)),
+  abovePickPlate: staubli(at(beltEnd, top)),
+  pickPlate: staubli(at(beltEnd, plateGrip(beltTop))),
+  abovePlateSpot: staubli(at(spot, top)),
+  placePlate: staubli(at(spot, plateGrip(spot.z))),
+  aboveHole1: staubli(at(holeA, top)),
+  pickHole1: staubli(at(holeA, partGrip(spot.z))),
+  aboveHole2: staubli(at(holeB, top)),
+  pickHole2: staubli(at(holeB, partGrip(spot.z))),
   aboveSlot1: staubli(at(slot1, top)),
-  placeSlot1: staubli(at(slot1, board.z + part.height)),
+  placeSlot1: staubli(at(slot1, partGrip(board.z))),
   aboveSlot2: staubli(at(slot2, top)),
-  placeSlot2: staubli(at(slot2, board.z + part.height)),
-  abovePickMarker: staubli(at(beltEnd, top)),
-  pickMarker: staubli(at(beltEnd, markerGrip(beltTop))),
+  placeSlot2: staubli(at(slot2, partGrip(board.z))),
   aboveHolder: staubli(at(holder, top)),
-  placeHolder: staubli(at(holder, markerGrip(holder.z))),
+  pickHolder: staubli(at(holder, markerGrip(holder.z))),
 } satisfies Record<string, Pose>;
 
 const EDGE_STEPS = 4;

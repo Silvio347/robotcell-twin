@@ -25,8 +25,8 @@ already match the real cell and which ones are placeholders.
 | Robot phase ("picking part 1", "drawing square 2", ...) | Estimated from the PLC handshake signals | **Estimated**, exact at each PLC event, timing learned from the cycles seen | Exact for every phase once the robot programs pulse the progress outputs ([robot-estimation](docs/robot-estimation.md)) |
 | Robot joint angles | Estimated from the phase + taught poses | **Placeholder poses** computed from the layout; timed by joint motion, SCARA lifts J3 before travelling and keeps the pen down while drawing | Real poses copied from the pendants into `src/model/poses.ts`. Live joints from the controllers override the estimate if ever published |
 | Robot geometry (link lengths, Stäubli stroke) | Datasheets (TS60 620 mm reach, MiniCobo 580 mm reach) | **Placeholder**, link split and stroke guessed | TS60 manual / nameplate ([robot-estimation](docs/robot-estimation.md#drawing-to-scale)) |
-| Cell layout (bases, conveyor, whiteboard, part source, marker holders) | `src/model/layout.ts` | **Placeholder**, chosen so both robots reach their points | Measured on the cell |
-| Marker and parts position, ink of the squares, cycle time | Estimated from sensors, conveyor output and gripper state | **Estimated**, exact at both sensors and at each DONE signal | Already from PLC signals once they are live |
+| Cell layout (bases, conveyor, plate start and stand, whiteboard, marker holder) | `src/model/layout.ts` | **Placeholder**, chosen so both robots reach their points | Measured on the cell |
+| Plate, parts and marker position, ink of the squares, cycle time | Estimated from sensors, conveyor output and gripper state | **Estimated**, exact at both sensors and at each DONE signal | Already from PLC signals once they are live |
 
 The PLC only exchanges digital I/O with the robots. It never knows where the
 arms are, but it knows what each robot is doing. The website uses that to

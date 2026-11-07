@@ -64,7 +64,7 @@
         <Property Name="UserID" Value="None"/>
         <Property Name="VCType" Value="INTEGER"/>
       </DataPoint>
-      <DataPoint Name="iMarcador">
+      <DataPoint Name="iPlaca">
         <Property Name="ConnectedBySharedResource" Value="False"/>
         <Property Name="ConnectingVisus" Value="Visualisation\Visu"/>
         <Property Name="Description" Value=""/>
@@ -163,7 +163,7 @@
         <Property Name="UserID" Value="None"/>
         <Property Name="VCType" Value="INTEGER"/>
       </DataPoint>
-      <DataPoint Name="iCorMarcJaka">
+      <DataPoint Name="iCorPlacaJaka">
         <Property Name="ConnectedBySharedResource" Value="False"/>
         <Property Name="ConnectingVisus" Value="Visualisation\Visu"/>
         <Property Name="Description" Value=""/>
@@ -172,7 +172,7 @@
         <Property Name="UserID" Value="None"/>
         <Property Name="VCType" Value="INTEGER"/>
       </DataPoint>
-      <DataPoint Name="iCorMarcEsteira">
+      <DataPoint Name="iCorPlacaEsteira">
         <Property Name="ConnectedBySharedResource" Value="False"/>
         <Property Name="ConnectingVisus" Value="Visualisation\Visu"/>
         <Property Name="Description" Value=""/>
@@ -181,7 +181,7 @@
         <Property Name="UserID" Value="None"/>
         <Property Name="VCType" Value="INTEGER"/>
       </DataPoint>
-      <DataPoint Name="iCorMarcStaubli">
+      <DataPoint Name="iCorPlacaStaubli">
         <Property Name="ConnectedBySharedResource" Value="False"/>
         <Property Name="ConnectingVisus" Value="Visualisation\Visu"/>
         <Property Name="Description" Value=""/>
