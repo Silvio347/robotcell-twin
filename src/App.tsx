@@ -1,5 +1,6 @@
 import { CellView2D } from './components/CellView2D';
 import { ConnectPanel } from './components/ConnectPanel';
+import { CyclePanel } from './components/CyclePanel';
 import { IoTable } from './components/IoTable';
 import { RobotPanel } from './components/RobotPanel';
 import { StatusBar } from './components/StatusBar';
@@ -29,6 +30,7 @@ export function App() {
             <CellView2D io={io} stale={stale} now={now} />
           </section>
           <aside className="side">
+            <CyclePanel now={now} />
             <IoTable io={stale ? null : io} />
             <RobotPanel now={now} />
           </aside>

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { RobotEstimate } from '../estimator/engine';
-import type { PartsEstimate } from '../estimator/parts';
+import type { ItemsEstimate } from '../estimator/items';
 import type { RobotId } from '../model/cell';
 import type { PlcIoSnapshot, RobotState, SourceStatus } from '../model/messages';
 
@@ -16,14 +16,14 @@ interface TwinState {
   robots: Record<RobotId, RobotState | null>;
   /** Phase and joints estimated from PLC I/O (src/estimator). */
   estimates: Record<RobotId, RobotEstimate | null>;
-  /** Part on the belt and placed counter, estimated from PLC I/O. */
-  parts: PartsEstimate | null;
+  /** Marker, parts and ink, estimated from PLC I/O. */
+  items: ItemsEstimate | null;
   setConnection: (connection: ConnectionState) => void;
   setError: (error: string | null) => void;
   setSource: (source: SourceStatus) => void;
   setIo: (io: PlcIoSnapshot) => void;
   setRobot: (robot: RobotId, state: RobotState) => void;
-  setEstimates: (estimates: Record<RobotId, RobotEstimate>, parts: PartsEstimate) => void;
+  setEstimates: (estimates: Record<RobotId, RobotEstimate>, items: ItemsEstimate) => void;
   reset: () => void;
 }
 
@@ -37,14 +37,14 @@ export const useTwinStore = create<TwinState>()((set) => ({
   connection: 'disconnected',
   error: null,
   estimates: { jaka: null, staubli: null },
-  parts: null,
+  items: null,
   ...initialData(),
   setConnection: (connection) => set({ connection }),
   setError: (error) => set({ error }),
   setSource: (source) => set({ source }),
   setIo: (io) => set({ io }),
   setRobot: (robot, state) => set((s) => ({ robots: { ...s.robots, [robot]: state } })),
-  setEstimates: (estimates, parts) => set({ estimates, parts }),
+  setEstimates: (estimates, items) => set({ estimates, items }),
   // Estimates are not cleared here: the estimator resets itself when io becomes null.
   reset: () => set(initialData()),
 }));

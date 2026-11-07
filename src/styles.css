@@ -446,3 +446,49 @@ button.secondary {
 .svg-stale {
   fill: rgba(15, 20, 25, 0.7);
 }
+
+.svg-board {
+  fill: #f4f6f8;
+  stroke: var(--muted);
+}
+
+.svg-square-guide {
+  fill: none;
+  stroke: #c3ccd5;
+  stroke-dasharray: 2 3;
+}
+
+.svg-ink {
+  fill: none;
+  stroke: #1d2b8f;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.svg-marker {
+  fill: #e6edf3;
+  stroke: #0b0f14;
+  stroke-width: 0.8;
+}
+
+.svg-marker-tip {
+  fill: #1d2b8f;
+}
+
+.cycle {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.cycle dt {
+  color: var(--muted);
+}
+
+.cycle dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}

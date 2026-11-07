@@ -1,4 +1,6 @@
 // Cell layout seen from above, in millimetres.
+// Every Stäubli point is kept between -90° and +135° around its base so the
+// joint interpolation never wraps through ±180°.
 // Origin at the Stäubli base, +x towards the Jaka, z up from the table top.
 //
 // PLACEHOLDER VALUES: chosen so both robots can reach their points, not
@@ -43,15 +45,31 @@ export const LAYOUT = {
     jakaToStaubli: { from: { x: 1150, y: -150 }, to: { x: 450, y: -150 }, width: 100, height: 100 },
     staubliToJaka: { from: { x: 450, y: 150 }, to: { x: 1150, y: 150 }, width: 100, height: 100 },
   } satisfies Record<string, ConveyorLayout>,
-  part: { size: 40, height: 30 },
-  /** Surface where the Jaka picks new parts. */
-  jakaSource: { x: 1500, y: -380, z: 0 },
-  /** Fixture where the Stäubli places finished parts. */
-  staubliDestination: { x: -250, y: 330, z: 60 },
+  /** Parts lie flat; the gripper holds them by the top face. */
+  part: { size: 40, height: 20 },
+  /** Marker lying down: length along the conveyor, diameter. */
+  marker: { length: 130, diameter: 18, tipReach: 60 },
+  /** Whiteboard on the Stäubli table (centre, size, top surface height). */
+  board: { x: -200, y: 300, width: 300, depth: 200, z: 5 },
+  /** Part centres on the board; a square is drawn around each one. */
+  boardSlots: [
+    { x: -270, y: 300 },
+    { x: -130, y: 300 },
+  ],
+  /** Half side of the drawn squares. */
+  squareHalf: 45,
+  /** Where the Stäubli picks the two parts. */
+  partSource: [
+    { x: 250, y: 330 },
+    { x: 360, y: 290 },
+  ],
+  /** Marker holder on the Jaka side (start) and on the Stäubli side (end). */
+  jakaMarkerHolder: { x: 1500, y: -380, z: 0 },
+  staubliMarkerHolder: { x: 150, y: -380, z: 40 },
   /** Approach height above pick and place points. */
   approach: 80,
   /** Tool positions at home. */
-  staubliHome: { x: 250, y: 300 },
+  staubliHome: { x: 350, y: 100 },
   jakaHome: { x: 1300, y: 200, z: 300 },
 };
 
