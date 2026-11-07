@@ -84,4 +84,7 @@ PROGRAM _CYCLIC
 	
 	Timer_Staubli(PT := T#1s);
 
+	//Digital twin: send the I/O state to the bridge PC (TwinSender.st)
+	TwinSender;
+
 END_PROGRAM

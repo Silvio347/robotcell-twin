@@ -1,20 +1,79 @@
 # Step 2: PLC UDP sender
 
-Add a small sender to `NewProgram` that sends the I/O state every 200 ms to
-the bridge PC. The cell sequence stays the same.
+The PLC sends its I/O state every 200 ms to the bridge PC. The cell sequence
+is not changed: the sender only reads variables.
 
-> The code below is a sketch written from the AsUDP documentation and has not
-> been compiled. Check the function block parameters in the Automation Studio
-> help (AsUDP) before downloading it to the PLC.
+Status: **code in the project, not compiled yet** (no Automation Studio here).
+Compile it on the lab PC following 2.1–2.3.
 
-## 2.1 Add the library
+## Files
 
-Logical View → Libraries → Add Object → Library → `AsUDP`. It ships with
-AR E3.10. Automation Studio adds it to `Cpu.sw`.
+| File | Change |
+|---|---|
+| `Logical/NewProgram/TwinSender.st` | New action `TwinSender` with the sender |
+| `Logical/NewProgram/IEC.prg` | Lists `TwinSender.st` as part of the program |
+| `Logical/NewProgram/NewProgram.var` | New `VAR` block with the `Twin*` variables |
+| `Logical/NewProgram/NewProgramCyclic.st` | Calls `TwinSender;` at the end of `_CYCLIC` |
 
-## 2.2 Packet layout
+The sender lives in its own action file, so it survives a rewrite of the
+sequence: keep the `TwinSender;` call at the end of `_CYCLIC`.
 
-`ARRAY[0..27] OF USINT` (byte array, so no struct padding):
+## 2.1 Add the AsUDP library
+
+The library is part of Automation Runtime E3.10 (`AsUDP.br` is in the
+project's runtime folder), but the project does not reference it yet.
+
+1. Open `plc/ProjetoFinalRobotica/ProjetoFinalRobotica.apj` in Automation Studio.
+2. Logical View → right click `Libraries` → Add Object → Library → `AsUDP`.
+
+Automation Studio adds the library folder, `Libraries/Package.pkg` and the
+entry in `Cpu.sw`. Commit those files too.
+
+Without this step the build fails with "UdpOpen"/"UdpSend" unknown.
+
+## 2.2 Set the bridge PC address
+
+In `NewProgram.var`, `TwinHost` must be the IP of the PC that runs the
+bridge **on the cell network** (`192.168.0.x`). On Windows, run `ipconfig`
+on that PC and look at the Ethernet adapter connected to the PLC.
+
+```
+TwinHost : STRING[15] := '192.168.0.100'; (*IP of the bridge PC on the cell network*)
+```
+
+`TwinHost` can also be changed online in the watch window; the next packet
+goes to the new address.
+
+## 2.3 Build, transfer, check
+
+1. Build. Then Transfer to the PLC (it is a normal program change; the
+   sequence keeps running as before).
+2. In the watch window of `NewProgram`, check:
+   - `TwinState` cycles between 1 and 2.
+   - `TwinSeq` counts up about 5 times per second.
+   - `TwinSendErrors` stays at 0. If it grows, `TwinHost` is wrong or the PC
+     is not reachable.
+3. On the bridge PC, run the bridge with `-v` ([step 3](03-bridge.md)), or
+   Wireshark with filter `udp.port == 5005`: one 28-byte packet every
+   200 ms from `192.168.0.70`.
+
+## How the sender works
+
+```
+state 0  UdpOpen on local port 5006 ──ok──► state 1
+           │ error
+           ▼
+state 3  wait 5 s, try again
+state 1  wait 200 ms, increment the sequence byte ──► state 2
+state 2  UdpSend to TwinHost:5005, call while busy, then back to state 1
+```
+
+Send errors are only counted in `TwinSendErrors`. A missing bridge PC never
+affects the cell; the website shows the data as stale.
+
+## Packet layout
+
+`TwinPacket : ARRAY[0..27] OF USINT` (byte array, so no struct padding):
 
 | Bytes | Content |
 |---|---|
@@ -25,76 +84,4 @@ AR E3.10. Automation Studio adds it to `Cpu.sw`.
 | 26 | `Ligar` (0/1) |
 | 27 | Sequence number, wraps at 255 (lets the bridge detect a frozen PLC) |
 
-Spare channels (DI 4, 11; DO 4, 9, 10) are sent as 0.
-
-## 2.3 Variables (`NewProgram.var`)
-
-```
-TwinOpen   : UdpOpen;
-TwinSend   : UdpSend;
-TwinTimer  : TON;
-TwinPacket : ARRAY[0..27] OF USINT;
-TwinHost   : STRING[15] := '192.168.0.100';  (* bridge PC *)
-TwinSeq    : USINT;
-TwinState  : USINT;
-```
-
-## 2.4 Code (end of `_CYCLIC`, after the sequence)
-
-```
-(* --- Digital twin: send I/O state to the bridge PC --- *)
-TwinPacket[0]  := BOOL_TO_USINT(Jaka_DO7);
-TwinPacket[1]  := BOOL_TO_USINT(Jaka_DO6);
-TwinPacket[2]  := BOOL_TO_USINT(Jaka_DO5);
-TwinPacket[4]  := BOOL_TO_USINT(Staubli_DO4);
-TwinPacket[5]  := BOOL_TO_USINT(Staubli_DO5);
-TwinPacket[6]  := BOOL_TO_USINT(Staubli_DO6);
-TwinPacket[7]  := BOOL_TO_USINT(Staubli_DO7);
-TwinPacket[8]  := BOOL_TO_USINT(Sensor_Staubli);
-TwinPacket[9]  := BOOL_TO_USINT(Sensor_Jaka);
-TwinPacket[11] := BOOL_TO_USINT(Emergencia);
-TwinPacket[12] := BOOL_TO_USINT(Jaka_DI3);
-TwinPacket[13] := BOOL_TO_USINT(Jaka_DI2);
-TwinPacket[14] := BOOL_TO_USINT(Jaka_DI1);
-TwinPacket[16] := BOOL_TO_USINT(Staubli_DI12);
-TwinPacket[17] := BOOL_TO_USINT(Staubli_DI13);
-TwinPacket[18] := BOOL_TO_USINT(Staubli_DI14);
-TwinPacket[19] := BOOL_TO_USINT(Staubli_DI15);
-TwinPacket[22] := BOOL_TO_USINT(Esteira_StaubliJaka);
-TwinPacket[23] := BOOL_TO_USINT(Esteira_JakaStaubli);
-TwinPacket[24] := INT_TO_USINT(Etapa);
-TwinPacket[25] := INT_TO_USINT(iContador);
-TwinPacket[26] := BOOL_TO_USINT(Ligar);
-
-CASE TwinState OF
-    0: (* open a UDP socket on any local port *)
-        TwinOpen(enable := TRUE, pIfAddr := 0, port := 0, options := 0);
-        IF TwinOpen.status = 0 THEN
-            TwinState := 1;
-        END_IF;
-
-    1: (* wait 200 ms *)
-        TwinTimer(IN := TRUE, PT := T#200ms);
-        IF TwinTimer.Q THEN
-            TwinTimer(IN := FALSE);
-            TwinSeq := TwinSeq + 1;
-            TwinPacket[27] := TwinSeq;
-            TwinState := 2;
-        END_IF;
-
-    2: (* send; status 65535 = busy, call again next scan *)
-        TwinSend(enable := TRUE, ident := TwinOpen.ident, pHost := ADR(TwinHost),
-                 port := 5005, pData := ADR(TwinPacket), datalen := SIZEOF(TwinPacket), flags := 0);
-        IF TwinSend.status <> 65535 THEN
-            TwinState := 1;  (* on error, just try again on the next period *)
-        END_IF;
-END_CASE;
-```
-
-The sender ignores send errors on purpose. A missing bridge PC must never
-affect the cell, and the website shows the data as stale anyway.
-
-## 2.5 Check it
-
-On the bridge PC, run Wireshark with filter `udp.port == 5005`. You should see
-one 28-byte packet every 200 ms from `192.168.0.70`, with byte 27 counting up.
+Spare channels (DI 4, 11; DO 4, 9, 10) are always 0.

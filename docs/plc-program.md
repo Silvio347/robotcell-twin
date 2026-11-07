@@ -3,6 +3,28 @@
 Automation Studio project: `plc/ProjetoFinalRobotica/ProjetoFinalRobotica.apj`
 (Automation Studio 4.1.14, based on the course "ProjetoPadraoIHM" template).
 
+## Where this project comes from
+
+Compared file by file with the template the professor handed out
+(`ProjetoFinalRobotica`, without the `plc/` copy's changes):
+
+| | Professor's template | This project |
+|---|---|---|
+| Hardware (4PP481 + X20 modules, AR E3.10, IP `192.168.0.70`) | Yes | Same (only the panel's hardware description version differs, 1.1.0.0 vs 1.0.0.0) |
+| Program | **None** (`Cpu.sw` has no task) | `NewProgram` with the sequence below |
+| I/O mapping | Leftover entries for a program `Robos` that is not in the project, with an older wiring that does **not** match Table I | Matches Table I |
+| HMI | B&R coffee-machine sample pages only | Adds `Init_Page` (start/stop buttons, 12-part progress) |
+| Shared files | | 381 of the template's Logical files are identical |
+
+So this project was built from the professor's template: it keeps the
+template's hardware and libraries and adds the program, the I/O map and the
+HMI page. It also contains `ProjetoPadrao.zip`, a snapshot from 29/05/2026
+where `NewProgram` only had a conveyor test (`esteira1`, `esteira2`).
+
+Starting from this project gives everything the template has plus a working
+I/O map. If the template is used instead, its `IoMap.iom` must be cleaned
+first, because the `Robos` entries point to a program that does not exist.
+
 ## Target configuration
 
 | Item | Value | Where |
@@ -58,8 +80,9 @@ clears the counter and returns to step 0.
 
 ## Known issues
 
-These were found by reading the code. Nothing in the PLC project has been
-changed.
+These were found by reading the code. The sequence has not been changed;
+the only addition is the digital twin sender (`TwinSender.st`, see
+[publishing-plan/02-plc-udp-sender.md](publishing-plan/02-plc-udp-sender.md)).
 
 ### 1. `Staubli_DI12` stops pulsing after the first parts
 

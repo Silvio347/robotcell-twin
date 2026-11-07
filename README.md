@@ -20,7 +20,7 @@ already match the real cell and which ones are placeholders.
 | Handshake and sequence signals: `Jaka_DI2/DI3/DO7`, `Staubli_DI12/DI13`, `Sensor_Jaka`, `Sensor_Staubli`, `Esteira_JakaStaubli` | PLC | **Simulated**, follows the real `NewProgram` sequence with made-up timing | The PLC sends its I/O ([steps 2–3](docs/publishing-plan/README.md)) |
 | `Emergencia` | PLC | **Simulated**, always safe (TRUE). Polarity confirmed in the PLC code | Same as above |
 | Unused signals: `Jaka_DO5/DO6/DI1`, `Staubli_DO4–DO7`, `Staubli_DI14/DI15`, `Esteira_StaubliJaka` | PLC | **Simulated**, always off (the program never uses them) | Same as above |
-| `Etapa`, `iContador`, `Ligar` | PLC (program variables) | **Not shown yet** | Bridge sends them, then the website shows them ([step 3](docs/publishing-plan/03-bridge.md)) |
+| `Etapa`, `iContador`, `Ligar` | PLC (program variables) | **Not shown yet**; the PLC sender and the bridge already carry them | The website shows them (separate change) |
 | Robot axes: Stäubli 4-axis SCARA (J3 in mm), Jaka 6-axis | Cell photos | **Confirmed** type; exact Stäubli model still to check on the nameplate | Already real |
 | Robot phase ("picking part", "returning home", ...) | Estimated from the PLC handshake signals | **Estimated**, exact at each PLC event, timing learned from the cycles seen | Exact for every phase once the unused robot outputs are set in the robot programs ([robot-estimation](docs/robot-estimation.md)) |
 | Robot joint angles | Estimated from the phase + taught poses | **Placeholder poses** computed from the layout; timed by joint motion, SCARA lifts J3 before travelling | Real poses copied from the pendants into `src/model/poses.ts`. Live joints from the controllers override the estimate if ever published |
