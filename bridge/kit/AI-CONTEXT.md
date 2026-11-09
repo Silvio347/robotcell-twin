@@ -27,7 +27,8 @@ PLC 192.168.0.70 --UDP 5005--> this kit on the lab PC --MQTT/TLS 8883--> HiveMQ 
 
 | File | What it does |
 |---|---|
-| `config.bat` | Broker host/port, PLC IP, topic prefix, `PUNCH` (firewall workaround). Edit with Notepad |
+| `config.bat` | Broker host/port, user and password, PLC IP, topic prefix, `PUNCH` (firewall workaround), CA file. Edit with Notepad |
+| `isrg-root-x1.pem` | Root certificate of the broker (Let's Encrypt ISRG Root X1), used via `MQTT_CA_FILE` |
 | `_python.bat` | Finds Python: `python\python.exe`, then `py -3`, then `python` (skips the Microsoft Store alias) |
 | `1-network-test.bat` | `ipconfig`, `Test-NetConnection <broker> -Port 8883`, `ping <PLC>` |
 | `2-python-test.bat` | Runs Python and prints its version and OpenSSL version |
@@ -46,7 +47,8 @@ variables: `MQTT_HOST`, `MQTT_PORT`, `MQTT_USERNAME`, `MQTT_PASSWORD`,
 1. `1-network-test.bat`
    - One adapter has an IPv4 address `192.168.0.x`: this PC is on the cell
      network. That address goes into `TwinHost` on the PLC (see below).
-   - `TcpTestSucceeded : True` for the broker. **If False, the campus
+   - `TcpTestSucceeded : True` for the broker on 8883 (bridge). 8884 is only
+     needed to open the website in a browser on this PC. **If 8883 is False, the campus
      network blocks port 8883**: nothing in the kit can fix that. Options:
      connect this PC to a phone hotspot (Wi-Fi) while keeping the cable to
      the cell, or use another machine.
@@ -57,6 +59,8 @@ variables: `MQTT_HOST`, `MQTT_PORT`, `MQTT_USERNAME`, `MQTT_PASSWORD`,
    running the kit from another folder (Documents, Desktop, USB drive). If
    every location is blocked, this PC cannot run the bridge.
 3. `3-broker-test.bat` prints `OK: connected, authenticated and published`.
+   The website (published on Netlify) does not need anything on this PC; it
+   can be opened on any device.
 4. `4-test-with-fake-plc.bat`: the bridge window shows `Connected to ...`
    and `Source status: online`. To see the data, open the HiveMQ Cloud
    console → Web Client, subscribe to `robotcell/#`; messages on
@@ -73,7 +77,7 @@ variables: `MQTT_HOST`, `MQTT_PORT`, `MQTT_USERNAME`, `MQTT_PASSWORD`,
 | `TcpTestSucceeded : False` | Port 8883 blocked by the network | Phone hotspot, or another network/machine |
 | `FAILED: broker refused the connection: bad user name or password` | Wrong credential | Check the user/password in HiveMQ Cloud → Access Management |
 | `FAILED: broker refused the connection: not authorized` | Credential without permission | Give the credential publish rights on `robotcell/#` |
-| `certificate is not trusted` / `CERTIFICATE_VERIFY_FAILED` | Windows root store does not have the broker's CA, or a proxy intercepts TLS | Download the ISRG Root X1 certificate (Let's Encrypt) as a `.pem` file and set `MQTT_CA_FILE` in `config.bat`. If a campus proxy intercepts TLS, use the phone hotspot |
+| `certificate is not trusted` / `CERTIFICATE_VERIFY_FAILED` | The kit trusts only `isrg-root-x1.pem`. Either the file is missing, the broker changed its CA, or a campus proxy intercepts TLS | Check the file is next to `config.bat`; try `MQTT_CA_FILE=` (empty) to use the Windows store; with a TLS proxy, use the phone hotspot |
 | `getaddrinfo failed` / `[Errno 11001]` | DNS cannot resolve the broker | No internet on this PC, or wrong `MQTT_HOST` |
 | `timed out` | Traffic silently dropped | Same as port blocked |
 | `[WinError 10048]` / address in use | Another bridge (or program) is already on UDP 5005 | Close the other window, or change `UDP_PORT` here and `TwinPort` on the PLC |
@@ -117,8 +121,8 @@ the cell sequence does not depend on it.
 
 - Do not suggest changes to the cell sequence, the robot programs or safety
   logic (E-stop, enables). The bridge is read-only; it never sends commands.
-- Never put the broker password in a file, a script or a command line; the
-  kit asks for it at runtime.
+- The broker password may be in `config.bat`; do not ask the user to paste
+  it in the chat, and never put it in a command line or a public place.
 - Do not disable the Windows firewall or antivirus; use the `PUNCH` option
   or ask the lab staff for a rule.
 - Changing the lab PC or PLC configuration (IP addresses, Runtime) needs the

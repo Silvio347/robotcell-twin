@@ -11,8 +11,9 @@ the .bat files in order. Each one stops at the first failure.
   4-test-with-fake-plc.bat whole path with a fake PLC (no real PLC needed)
   5-run-bridge.bat         the real bridge, for the real PLC
 
-Steps 3, 4 and 5 ask for the MQTT user and password. The password is not
-saved anywhere.
+Steps 3, 4 and 5 use the MQTT user and password from config.bat (or ask for
+them if they are not there). Do not share this kit: config.bat may hold the
+broker password.
 
-Settings (broker, PLC IP, firewall workaround): config.bat.
+Settings (broker, credentials, PLC IP, firewall workaround): config.bat.
 Need help? Give AI-CONTEXT.md to an AI assistant together with the error.
