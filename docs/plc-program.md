@@ -43,86 +43,99 @@ first, because the `Robos` entries point to a program that does not exist.
 ## I/O mapping
 
 All I/O variables are local to `NewProgram` and mapped in `IoMap.iom`. The
-mapping matches Table I of the handout.
+mapping matches Table I of the handout. Meanings are those of the whiteboard
+application ([whiteboard-application.md](whiteboard-application.md)).
 
 | Variable | Address | Meaning |
 |---|---|---|
-| `Jaka_DO7` | DI9371 ch 1 | Jaka finished placing a part |
-| `Jaka_DO6`, `Jaka_DO5` | DI9371 ch 2, 3 | Unused |
-| `Staubli_DO4`..`DO7` | DI9371 ch 5–8 | Unused |
-| `Sensor_Staubli` | DI9371 ch 9 | Part at the Stäubli end of the conveyor |
-| `Sensor_Jaka` | DI9371 ch 10 | Part at the Jaka end of the conveyor |
-| `Emergencia` | DI9371 ch 12 | TRUE = safe (cycle runs only when TRUE) |
-| `Jaka_DI3` | DO9322 ch 1 | Jaka may place a part |
-| `Jaka_DI2` | DO9322 ch 2 | Keep Jaka active |
-| `Jaka_DI1` | DO9322 ch 3 | Unused |
-| `Staubli_DI12` | DO9322 ch 5 | Stäubli may pick a part |
-| `Staubli_DI13` | DO9322 ch 6 | Keep Stäubli active |
-| `Staubli_DI14`, `DI15` | DO9322 ch 7, 8 | Unused |
-| `Esteira_StaubliJaka` | DO9322 ch 11 | Unused |
-| `Esteira_JakaStaubli` | DO9322 ch 12 | Conveyor towards the Stäubli |
-
-HMI variables (not mapped to I/O): `Ligar` (start/stop button), `iContador`
-(piece counter) and `bRet1`..`bRet12` (colors of the 12 progress rectangles).
+| `Jaka_DO7` | DI9371 ch 1 | DONE: plate on the conveyor |
+| `Jaka_DO6` | DI9371 ch 2 | Spare |
+| `Jaka_DO5` | DI9371 ch 3 | Pulse: plate gripped (used by the twin only) |
+| `Staubli_DO4` | DI9371 ch 5 | DONE: plate on the stand, both parts on the board |
+| `Staubli_DO5` | DI9371 ch 6 | DONE: squares drawn, marker stored |
+| `Staubli_DO6` | DI9371 ch 7 | Pulse: one part placed |
+| `Staubli_DO7` | DI9371 ch 8 | Pulse: one square drawn |
+| `Sensor_Staubli` | DI9371 ch 9 | Plate at the Stäubli end of the conveyor |
+| `Sensor_Jaka` | DI9371 ch 10 | Plate at the Jaka end of the conveyor |
+| `Emergencia` | DI9371 ch 12 | TRUE = safe |
+| `Jaka_DI3` | DO9322 ch 1 | CMD: put the plate on the conveyor |
+| `Jaka_DI2` | DO9322 ch 2 | Enable, TRUE while a cycle runs |
+| `Jaka_DI1` | DO9322 ch 3 | Spare |
+| `Staubli_DI12` | DO9322 ch 5 | CMD: plate to the stand, both parts to the board |
+| `Staubli_DI13` | DO9322 ch 6 | Enable, TRUE while a cycle runs |
+| `Staubli_DI14` | DO9322 ch 7 | CMD: pick the marker, draw, put it back |
+| `Staubli_DI15` | DO9322 ch 8 | Spare |
+| `Esteira_StaubliJaka` | DO9322 ch 11 | Spare (always FALSE) |
+| `Esteira_JakaStaubli` | DO9322 ch 12 | Carries the plate to the Stäubli |
 
 ## Sequence
 
-The cycle runs while `Ligar AND Emergencia`:
+Each robot task is a four-phase handshake: the PLC sets the command, the
+robot sets DONE when it has finished, the PLC clears the command, the robot
+clears DONE. There are no timers in the sequence.
 
-| `Etapa` | Waits for | Then |
+| `Etapa` | Does | Next when |
 |---|---|---|
-| 0 | nothing | Set `Jaka_DI2`, `Staubli_DI13`, `Jaka_DI3`; go to 1 |
-| 1 | `Sensor_Jaka AND Jaka_DO7` | Clear `Jaka_DI3`, start conveyor, count, go to 2 |
-| 2 | `Sensor_Staubli` | Stop conveyor, set `Staubli_DI12`, start 1 s timer, count, go to 0 |
+| 0 | Idle. On start: reset flags and counters, set `Jaka_DI3` | `Ligar AND Emergencia` |
+| 1 | `Jaka_DO7 AND Sensor_Jaka` → clear `Jaka_DI3`, start the conveyor. Conveyor `AND Sensor_Staubli` → stop it | Plate arrived and `Jaka_DO7` cleared |
+| 2 | Set `Staubli_DI12`; on `Staubli_DO4` clear it | `Staubli_DO4` |
+| 3 | Wait for the Stäubli to clear DONE | `Staubli_DO4` cleared |
+| 4 | Set `Staubli_DI14`; on `Staubli_DO5` clear it | `Staubli_DO5` |
+| 5 | Count the cycle, clear `Ligar` | `Staubli_DO5` cleared → 0 |
 
-When `Ligar` or `Emergencia` drops, the `ELSE` branch stops the conveyor,
-clears the counter and returns to step 0.
+- One run per start: `Ligar` is cleared at the end of the cycle, so the
+  operator presses **Ligar** again for the next run (after putting the plate
+  with both parts back at the Jaka and taking the parts off the board).
+- Stop (**Desligar**) or E-stop: every command, enable and conveyor goes
+  FALSE and `Etapa` returns to 0. E-stop also clears `Ligar`, so releasing it
+  never restarts the cell by itself.
+- `Staubli_DO6` / `Staubli_DO7` pulses advance the HMI counters. If the
+  Stäubli program does not pulse them, the counters jump to 2 when the
+  matching DONE arrives.
+- `TwinSender;` stays the last line of `_CYCLIC`.
 
-## Known issues
+This replaces the previous sequence (below). Not compiled yet: the first
+build happens on the lab PC.
 
-These were found by reading the code. The sequence has not been changed;
-the only addition is the digital twin sender (`TwinSender.st`, see
-[publishing-plan/02-plc-udp-sender.md](publishing-plan/02-plc-udp-sender.md)).
+## HMI (`Init_Page`)
 
-### 1. `Staubli_DI12` stops pulsing after the first parts
+![HMI preview](images/hmi-preview.png)
 
-In step 2 the timer is started and the program jumps back to step 0 in the
-same scan. `Timer_Staubli.IN` is never cleared, so after the first second
-`Timer_Staubli.Q` stays TRUE forever. From then on step 2 sets and clears
-`Staubli_DI12` in the same scan, and the output never turns on.
+*Preview drawn from the page file with sample values, not a screenshot of
+the panel.*
 
-Suggested fix, with a new step that waits for the timer:
+| Element | Variable |
+|---|---|
+| Ligar / Desligar | `Ligar` (set to 1 / 0) |
+| Step lamps: Jaka (plate on the conveyor), conveyor, Stäubli parts, drawing, cycle done | `iCorJaka`, `iCorEsteira`, `iCorPecas`, `iCorDesenho`, `iCorConcluido` |
+| Parts on the board, squares, cycle time (s), completed cycles | `iPecasNoQuadro`, `iQuadrados`, `iTempoCiclo_s`, `iContador` |
+| Whiteboard: parts and squares light up | `iCorPeca1/2`, `iCorQuadrado1/2` |
+| Plate position: Jaka / conveyor / Stäubli | `iCorPlacaJaka`, `iCorPlacaEsteira`, `iCorPlacaStaubli` (from `iPlaca`) |
+| E-stop lamp | `iCorEmergencia` |
+| Progress bar 0..4 | `iProgresso` (parts + squares) |
 
-```
-2:
-    IF Sensor_Staubli THEN
-        Esteira_JakaStaubli := FALSE;
-        Staubli_DI12 := TRUE;
-        Timer_Staubli.IN := TRUE;
-        Etapa := 3;
-    END_IF;
-3:
-    IF Timer_Staubli.Q THEN
-        Staubli_DI12 := FALSE;
-        Timer_Staubli.IN := FALSE;
-        Etapa := 0;
-    END_IF;
-```
+Lamp colors are palette indexes computed in the PLC, the same technique the
+previous page used: grey 250 = waiting, yellow 46 = running, green 155 =
+done, red 51 = E-stop. The page only uses control types that already existed
+in the project (button, text, shape, bar graph) plus the numeric output of
+the B&R sample. After the first build, adjust positions and fonts in the
+Automation Studio page editor as needed; from then on edit the page there.
 
-### 2. Counter increments twice per part
+## Previous application (Renan's)
 
-`iContador` is incremented in step 1 and again in step 2. If each of the 12
-HMI rectangles stands for one part, six parts fill all twelve.
+The project received from Renan built a 6-part pyramid:
 
-### 3. Stop branch sets signals that mean "go"
+- `Etapa` 0 → 1 → 2: the Jaka puts a part on the conveyor, the conveyor
+  carries it, the Stäubli picks it and stacks it.
+- `iContador` went up twice per part on purpose (odd: Jaka placed part n,
+  even: Stäubli picked part n). The HMI showed a 6 × 2 table (Jaka/Stäubli
+  per part) and a 3-2-1 pyramid lit by the even steps.
+- Two problems it had, both solved by the new sequence: the 1 s pulse on
+  `Staubli_DI12` stopped working after the first part (the timer input was
+  never cleared), and the stop branch set `Staubli_DI12`, `Staubli_DI13` and
+  `Jaka_DI3` to TRUE.
 
-The `ELSE` branch is commented "stop the Stäubli", but it sets
-`Staubli_DI13`, `Staubli_DI12` and `Jaka_DI3` to TRUE. In step 0 those same
-signals mean "keep active", "may pick" and "may place". Check in both robot
-programs what TRUE means. If it is the same meaning, pressing the E-stop or
-the HMI stop button tells the robots to keep working.
-
-### 4. Leftovers from the template
+## Leftovers from the template
 
 `Logical/Global.typ` still has the coffee machine types from the B&R sample
 (`main_typ`, `brewing_typ`, ...), and `Logical/Visu` holds the sample pages.

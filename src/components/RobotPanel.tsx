@@ -1,9 +1,10 @@
+import { toolPoint, type ItemsEstimate } from '../estimator/items';
 import { useRobotView } from '../hooks/useRobotView';
 import type { RobotId } from '../model/cell';
-import { jakaFk, scaraFk } from '../model/kinematics';
-import { toCellFrame, type Point3 } from '../model/layout';
+import type { Point3 } from '../model/layout';
 import { POSES_ARE_PLACEHOLDERS } from '../model/poses';
 import { ROBOT_IDS, ROBOTS, type JointDef } from '../model/robots';
+import { useTwinStore } from '../state/store';
 
 function formatJoint(value: number, def: JointDef): string {
   return def.unit === 'mm' ? `${value.toFixed(0)} mm` : `${value.toFixed(1)}°`;
@@ -13,14 +14,18 @@ function formatPoint(p: Point3): string {
   return `x ${p.x.toFixed(0)}, y ${p.y.toFixed(0)}, z ${p.z.toFixed(0)} mm`;
 }
 
-function toolPosition(robot: RobotId, joints: readonly number[]): Point3 {
-  const tool = robot === 'staubli' ? scaraFk(joints).tool : jakaFk(joints).points[6]!;
-  return toCellFrame(robot, tool);
+function heldItem(robot: RobotId, items: ItemsEstimate | null): string {
+  if (!items) return 'something';
+  if (items.plate === (robot === 'jaka' ? 'jakaGripper' : 'staubliGripper')) return 'the plate';
+  if (robot === 'staubli' && items.marker === 'gripper') return 'the marker';
+  const part = robot === 'staubli' ? items.parts.indexOf('gripper') : -1;
+  return part >= 0 ? `part ${part + 1}` : 'something';
 }
 
 function RobotCard({ robot, now }: { robot: RobotId; now: number }) {
   const def = ROBOTS[robot];
   const { joints, source, estimate } = useRobotView(robot, now);
+  const items = useTwinStore((s) => s.items);
   const stopped = estimate?.stoppedReason != null;
 
   return (
@@ -52,8 +57,8 @@ function RobotCard({ robot, now }: { robot: RobotId; now: number }) {
       )}
       {joints && (
         <p className="small">
-          Tool {formatPoint(toolPosition(robot, joints))}
-          {estimate && <span className="muted"> · gripper {estimate.holding ? 'holding a part' : 'empty'}</span>}
+          Tool {formatPoint(toolPoint(robot, joints))}
+          {estimate && <span className="muted"> · gripper {estimate.holding ? `holding ${heldItem(robot, items)}` : 'empty'}</span>}
         </p>
       )}
       {source && (

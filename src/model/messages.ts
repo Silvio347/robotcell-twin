@@ -17,6 +17,10 @@ export interface PlcIoSnapshot {
   receivedAt: number;
   di: boolean[];
   do: boolean[];
+  /** PLC `Etapa`, `iContador` and `Ligar`, sent by the bridge; null if absent. */
+  step: number | null;
+  count: number | null;
+  running: boolean | null;
 }
 
 export interface RobotState {
@@ -67,7 +71,20 @@ export function parsePlcIo(payload: string, receivedAt: number): PlcIoSnapshot |
   const di = parseChannels(obj.di);
   const dout = parseChannels(obj.do);
   if (!di || !dout) return null;
-  return { ts: parseTs(obj.ts), receivedAt, di, do: dout };
+  return {
+    ts: parseTs(obj.ts),
+    receivedAt,
+    di,
+    do: dout,
+    step: parseByte(obj.step),
+    count: parseByte(obj.count),
+    running: obj.running === undefined ? null : toBool(obj.running),
+  };
+}
+
+/** Optional 0..255 integer (one byte of the PLC packet). */
+function parseByte(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 255 ? value : null;
 }
 
 /** `jointCount` comes from src/model/robots.ts (4 for the Stäubli SCARA, 6 for the Jaka). */

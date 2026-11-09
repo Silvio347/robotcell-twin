@@ -3,8 +3,8 @@
 // All positions in mm in the robot base frame, joints as in src/model/robots.ts.
 //
 // PLACEHOLDER GEOMETRY until the exact models are confirmed:
-//   - Stäubli: TS2-60 class SCARA, 620 mm reach and 200 mm stroke from the
-//     public datasheet. The split between arm 1 and arm 2 is a guess.
+//   - Stäubli TS60 SCARA: 620 mm reach from the datasheet. The split between
+//     arm 1 and arm 2, the 200 mm stroke and the tool height are guesses.
 //   - Jaka MiniCobo: 580 mm reach from jaka.com. Link lengths are a guess with
 //     the UR-style layout JAKA arms use (standard DH).
 
@@ -18,8 +18,8 @@ const deg = (r: number) => (r * 180) / Math.PI;
 export const SCARA = {
   l1: 320,
   l2: 300,
-  /** Tool flange height above the table with J3 fully up. */
-  zTop: 250,
+  /** Gripper tip height above the table with J3 fully up (robot on its stand). */
+  zTop: 220,
   stroke: 200,
   /** Elbow side used by the IK: +1 = J2 positive. */
   elbow: 1 as 1 | -1,

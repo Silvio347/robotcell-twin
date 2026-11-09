@@ -17,16 +17,16 @@ already match the real cell and which ones are placeholders.
 | Data | Source | Status today | Real when |
 |---|---|---|---|
 | I/O map (which signal is on which channel) | `IoMap.iom` in the PLC project + Table I of the handout | **Confirmed**, matches both | Already real |
-| Handshake and sequence signals: `Jaka_DI2/DI3/DO7`, `Staubli_DI12/DI13`, `Sensor_Jaka`, `Sensor_Staubli`, `Esteira_JakaStaubli` | PLC | **Simulated**, follows the real `NewProgram` sequence with made-up timing | The PLC sends its I/O ([steps 2–3](docs/publishing-plan/README.md)) |
+| Handshake and sequence signals (whiteboard application) | PLC | **Simulated** in the demo, from `src/sim/timeline.json`, which follows the new `NewProgram` with made-up timing | The PLC sends its I/O ([steps 2–3](docs/publishing-plan/README.md)) |
 | `Emergencia` | PLC | **Simulated**, always safe (TRUE). Polarity confirmed in the PLC code | Same as above |
-| Unused signals: `Jaka_DO5/DO6/DI1`, `Staubli_DO4–DO7`, `Staubli_DI14/DI15`, `Esteira_StaubliJaka` | PLC | **Simulated**, always off (the program never uses them) | Same as above |
-| `Etapa`, `iContador`, `Ligar` | PLC (program variables) | **Not shown yet**; the PLC sender and the bridge already carry them | The website shows them (separate change) |
-| Robot axes: Stäubli 4-axis SCARA (J3 in mm), Jaka 6-axis | Cell photos | **Confirmed** type; exact Stäubli model still to check on the nameplate | Already real |
-| Robot phase ("picking part", "returning home", ...) | Estimated from the PLC handshake signals | **Estimated**, exact at each PLC event, timing learned from the cycles seen | Exact for every phase once the unused robot outputs are set in the robot programs ([robot-estimation](docs/robot-estimation.md)) |
-| Robot joint angles | Estimated from the phase + taught poses | **Placeholder poses** computed from the layout; timed by joint motion, SCARA lifts J3 before travelling | Real poses copied from the pendants into `src/model/poses.ts`. Live joints from the controllers override the estimate if ever published |
-| Robot geometry (link lengths, Stäubli stroke) | Public datasheets (TS2-60 class, MiniCobo reach) | **Placeholder**, link split guessed | Exact models confirmed on the nameplates ([robot-estimation](docs/robot-estimation.md#drawing-to-scale)) |
-| Cell layout (robot bases, conveyors, source, destination) | `src/model/layout.ts` | **Placeholder**, chosen so both robots reach their points | Measured on the cell |
-| Part position (source, grippers, belt, placed count) | Estimated from sensors, conveyor output and gripper state | **Estimated**, exact at both sensors, belt speed learned | Already from PLC signals once they are live |
+| Progress pulses `Jaka_DO5`, `Staubli_DO6`, `Staubli_DO7` | Robot programs | **Simulated**; the twin also works without them (timed) | The robot programs pulse them ([whiteboard-application](docs/whiteboard-application.md#robot-programs)) |
+| `Etapa`, `iContador` (step, completed cycles) | PLC variables via the bridge | **Simulated** in the demo, shown in the Cycle panel | Same as above |
+| Robot axes: Stäubli TS60 4-axis SCARA (J3 in mm), Jaka MiniCobo 6-axis | Nameplates and photos | **Confirmed** | Already real |
+| Robot phase ("picking part 1", "drawing square 2", ...) | Estimated from the PLC handshake signals | **Estimated**, exact at each PLC event, timing learned from the cycles seen | Exact for every phase once the robot programs pulse the progress outputs ([robot-estimation](docs/robot-estimation.md)) |
+| Robot joint angles | Estimated from the phase + taught poses | **Placeholder poses** computed from the layout; timed by joint motion, SCARA lifts J3 before travelling and keeps the pen down while drawing | Real poses copied from the pendants into `src/model/poses.ts`. Live joints from the controllers override the estimate if ever published |
+| Robot geometry (link lengths, Stäubli stroke) | Datasheets (TS60 620 mm reach, MiniCobo 580 mm reach) | **Placeholder**, link split and stroke guessed | TS60 manual / nameplate ([robot-estimation](docs/robot-estimation.md#drawing-to-scale)) |
+| Cell layout (bases, conveyor, plate start and stand, whiteboard, marker holder) | `src/model/layout.ts` | **Placeholder**, chosen so both robots reach their points | Measured on the cell |
+| Plate, parts and marker position, ink of the squares, cycle time | Estimated from sensors, conveyor output and gripper state | **Estimated**, exact at both sensors and at each DONE signal | Already from PLC signals once they are live |
 
 The PLC only exchanges digital I/O with the robots. It never knows where the
 arms are, but it knows what each robot is doing. The website uses that to

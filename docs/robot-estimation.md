@@ -5,7 +5,8 @@ never knows where an arm is. It does know which part of its task each robot
 is doing. The website uses that to animate the robots between taught poses,
 with no runtime connection to the robot controllers.
 
-Code: `src/estimator/` (engine and task definitions) and `src/model/poses.ts`.
+Code: `src/estimator/` (engine, task definitions, objects) and `src/model/poses.ts`.
+The tasks follow the whiteboard application ([whiteboard-application.md](whiteboard-application.md)).
 
 ## How it works
 
@@ -18,8 +19,8 @@ Code: `src/estimator/` (engine and task definitions) and `src/model/poses.ts`.
 4. Segment durations start from defaults and are **learned** from the
    observed time between events (moving average). After 2–3 cycles the
    animation follows the real cell speed.
-5. E-stop, cell stopped (`Jaka DI2` low) or stale data freeze the robots
-   where they are (a gripped part stays in the gripper). When the cell runs
+5. E-stop, cell not running (`Jaka DI2` low) or stale data freeze the
+   robots where they are (a gripped object stays in the gripper). When the cell runs
    again, each robot restarts from its first segment.
 
 ## Motion inside a segment
@@ -35,26 +36,31 @@ Code: `src/estimator/` (engine and task definitions) and `src/model/poses.ts`.
 - **Gripper.** Each pick segment closes the gripper when it reaches the pick
   pose; the release/place segment opens it at the release pose.
 
-## Parts
+- **Pen down (Stäubli drawing).** Drawing segments keep J3 where it is
+  between points (`noLift`), so the pen stays on the board. Each edge of a
+  square is split into several points so the joint interpolation stays
+  close to the straight `movel` line of the real program.
 
-`src/estimator/parts.ts` tracks one part through the cell:
+`Jaka DI2` is the "cell running" flag: the PLC holds it TRUE only while a
+cycle runs. When it drops (cycle finished or stop) the robots show **Idle**.
 
-| Where | From | Until |
-|---|---|---|
-| Part source (assumed always supplied) | — | Jaka gripper closes |
-| Jaka gripper | Jaka reaches the pick pose | `Sensor Jaka` rises (part on the belt) |
-| Jaka → Stäubli belt | `Sensor Jaka` rises | Stäubli gripper closes |
-| Stäubli gripper | Stäubli reaches the pick pose | Stäubli reaches the place pose |
-| Destination | Stäubli gripper opens (counted in "Placed") | — |
+## Objects and ink
 
-While the belt output is on, the part moves at a speed learned from
-"conveyor on" → "`Sensor Stäubli` on" in earlier cycles. Without the sensor
-it stops just before the Stäubli end.
+`src/estimator/items.ts` tracks the plate, the two parts, the marker and the ink:
 
-`Jaka DI2` is used as the "cell running" flag because the PLC holds it TRUE
-during the sequence and clears it in the stop branch. `Stäubli DI13` cannot
-be used: the stop branch sets it TRUE as well (known issue 3 in
-[plc-program.md](plc-program.md)).
+| Object | Moves when |
+|---|---|
+| Plate: Jaka table → Jaka gripper | Jaka gripper closes in "Picking the plate" |
+| Plate: → conveyor | Jaka gripper opens on the conveyor (`Sensor Jaka` already sees it) |
+| Plate: along the conveyor | Conveyor output on; speed learned from "conveyor on" → `Sensor Stäubli` |
+| Plate: → Stäubli gripper → stand | Stäubli gripper closes at the conveyor end / opens on the stand |
+| Part n: plate → gripper → board | Stäubli gripper closes at hole n / opens at board slot n. Parts still in the plate move with it |
+| Marker: holder → gripper → holder | Stäubli gripper closes / opens at the marker holder |
+| Ink of square n | Recorded while the Stäubli holds the marker in "Drawing square n", its tool is at drawing height and inside square n |
+
+A new run (rising `Jaka DI3`) puts the plate with both parts back at the
+Jaka, the marker in its holder and clears the ink, as the operator does on
+the real cell.
 
 ## Tasks
 
@@ -63,56 +69,55 @@ be used: the stop branch sets it TRUE as well (known issue 3 in
 | Segment | Poses | Ends on |
 |---|---|---|
 | Home, waiting for the PLC | home | `Jaka DI3` high (PLC step 0) |
-| Picking part | abovePart → pickPart → abovePart | `Jaka DO5` rises *(optional)* |
-| Placing part on conveyor | aboveConveyor → placeConveyor | `Sensor Jaka` rises |
-| Releasing part | placeConveyor | `Jaka DO7` rises |
-| Returning home | aboveConveyor → home | `Jaka DO6` rises *(optional)* |
+| Picking the plate | abovePlate → pickPlate → abovePlate | `Jaka DO5` rises *(optional)* |
+| Putting the plate on the conveyor | aboveConveyor → placeConveyor | `Sensor Jaka` rises |
+| Releasing the plate | placeConveyor | `Jaka DO7` rises |
+| Returning home | aboveConveyor → home | time |
 
-### Stäubli (4-axis SCARA)
+### Stäubli TS60 (4-axis SCARA)
 
 | Segment | Poses | Ends on |
 |---|---|---|
-| Home, waiting for a part | home | `Stäubli DI12` high while `Sensor Stäubli` is on (PLC step 2) |
-| Picking part from conveyor | abovePick → pick → abovePick | `Sensor Stäubli` falls, or `Stäubli DO4` rises *(optional)* |
-| Placing part | abovePlace → place → abovePlace | `Stäubli DO5` rises *(optional)* |
-| Returning home | home | `Stäubli DO6` rises *(optional)* |
+| Home, waiting for the plate | home | `Stäubli DI12` high (PLC step 2) |
+| Picking the plate | above / pick at the conveyor end | `Sensor Stäubli` falls |
+| Putting the plate on the table | above / place on the stand | time |
+| Picking part 1 | above / pick at hole 1 | time |
+| Placing part 1 on the board | above / place at slot 1 | `Stäubli DO6` rises *(optional)* |
+| Picking part 2 | above / pick at hole 3 | time |
+| Placing part 2 on the board | above / place at slot 2 → home | `Stäubli DO4` rises |
+| Home, waiting for the PLC | home | `Stäubli DI14` high (PLC step 4) |
+| Picking the marker | above / pick at the holder | time |
+| Drawing square 1 | square path around slot 1 | `Stäubli DO7` rises *(optional)* |
+| Drawing square 2 | square path around slot 2 | `Stäubli DO7` rises *(optional)* |
+| Storing the marker | above / place at the holder → home | `Stäubli DO5` rises |
 
 ## What is exact and what is approximate
 
 | Item | Quality today |
 |---|---|
 | Which segment each robot is in | Exact at every PLC event; between events it is an estimate |
-| Jaka timing up to "part on the conveyor" and release | Learned from the real cell |
-| Stäubli pick timing | Learned from the real cell |
-| Stäubli place and return, Jaka pick vs. place split | Fixed default durations (no PLC event) |
-| Poses | **Placeholders** computed from the placeholder layout until real values are copied into `src/model/poses.ts` |
-| Robot geometry | **Placeholder** link lengths (datasheet reach, guessed split), see `src/model/kinematics.ts` |
+| Jaka plate hand-off, Stäubli plate pick, "parts done", "drawing done" | Exact (handshake signals and sensors) |
+| Part 1 vs part 2, square 1 vs square 2 | Exact if the robot programs pulse `Stäubli DO6` / `DO7`, otherwise timed |
+| Poses and square paths | **Placeholders** computed from the placeholder layout |
+| Robot geometry | **Placeholder** link lengths, see `src/model/kinematics.ts` |
 | Cell layout | **Placeholder** positions, see `src/model/layout.ts` |
 | Path between poses | Joint interpolation with the SCARA lift rule, not the real trajectory |
-| Part position on the belt | Learned belt travel time, confirmed at both sensors |
+| Ink | Follows the taught square corners, not what the pen really drew |
 
-If the PLC never sets `Stäubli DI12` (known issue 1 in
-[plc-program.md](plc-program.md)), the twin shows the Stäubli waiting at
-home. That matches what the real robot is being told.
+## Optional pulses
 
-## Making it more precise without robot communication
+The pulses come from robot outputs that are already wired. Setting them in
+the robot programs makes the twin exact for every part and square:
 
-Several robot outputs are already wired to the PLC and unused by the
-current robot programs. Setting them in the robot programs adds exact events
-with no new hardware or network:
-
-| Robot output | Set it when |
+| Robot output | Pulse when |
 |---|---|
-| Jaka DO5 | The gripper closes on the part |
-| Jaka DO6 | The Jaka is back at home |
-| Stäubli DO4 | The gripper closes on the part |
-| Stäubli DO5 | The part is released at its destination |
-| Stäubli DO6 | The Stäubli is back at home |
+| Jaka DO5 | The gripper closes on the plate |
+| Stäubli DO6 | A part is released on the board |
+| Stäubli DO7 | A square is finished |
 
-Pulse each bit (for example 200 ms) so the next cycle produces a new rising
-edge. The estimator detects them automatically: once a bit has been seen, the
-segment waits for it instead of advancing on time. They also need to reach
-the bridge, which they do, since the UDP packet carries every input channel.
+Pulse each bit for about 200 ms. The estimator detects them automatically:
+once a bit has been seen, its segment waits for it instead of advancing on
+time. The PLC uses `Stäubli DO6` / `DO7` for the HMI counters too.
 
 ## Recording the real poses
 
@@ -134,11 +139,12 @@ joints (standard DH, UR-style). The tool height, which a top view cannot
 show, is on the Z gauge next to each robot.
 
 The placeholder poses are computed from the layout with inverse kinematics,
-so the tools land on the conveyor, part source and destination. With real
+so the tools land on the conveyor, part source, board slots, square
+corners, plate stand and marker holder. With real
 values the order is:
 
-1. Measure the layout (robot bases, conveyor ends, source, destination,
-   heights) and update `src/model/layout.ts`.
+1. Measure the layout (robot bases, conveyor ends, board,
+   plate start and stand, marker holder, heights) and update `src/model/layout.ts`.
 2. Confirm the robot models and update the link lengths in
    `src/model/kinematics.ts` (Stäubli L1/L2/stroke, Jaka DH).
 3. Copy the real poses into `src/model/poses.ts` as plain numbers.

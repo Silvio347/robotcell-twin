@@ -1,0 +1,25 @@
+{
+  "description": "One run of the whiteboard application as PLC I/O, used by the in-browser demo (src/sim/demo.ts) and the MQTT simulator (scripts/simulate.mjs). Follows NewProgram in plc/ProjetoFinalRobotica. Channels: DIn = X20DI9371 channel n, DOn = X20DO9322 channel n. DI12 (E-stop, TRUE = safe) is always on. Times in seconds.",
+  "durationS": 36,
+  "events": [
+    { "t": 0.0, "note": "Start: enables and Jaka DI3 (put the plate on the conveyor)", "set": { "DO2": true, "DO6": true, "DO1": true }, "step": 1, "running": true },
+    { "t": 1.5, "note": "Jaka DO5: plate gripped", "set": { "DI3": true } },
+    { "t": 1.8, "set": { "DI3": false } },
+    { "t": 4.0, "note": "Sensor Jaka: plate on the conveyor", "set": { "DI10": true } },
+    { "t": 4.5, "note": "Jaka DO7 done; PLC clears DI3 and starts the conveyor", "set": { "DI1": true, "DO1": false, "DO12": true } },
+    { "t": 4.8, "note": "Jaka clears DO7", "set": { "DI1": false } },
+    { "t": 5.0, "note": "Plate leaves Sensor Jaka", "set": { "DI10": false } },
+    { "t": 8.5, "note": "Sensor Staubli: plate arrived; PLC stops the conveyor and sets Staubli DI12", "set": { "DI9": true, "DO12": false, "DO5": true }, "step": 2 },
+    { "t": 10.0, "note": "Plate lifted off the conveyor", "set": { "DI9": false } },
+    { "t": 14.7, "note": "Staubli DO6: part 1 placed", "set": { "DI7": true } },
+    { "t": 15.0, "set": { "DI7": false } },
+    { "t": 18.5, "note": "Staubli DO4 done (both parts on the board); PLC clears DI12", "set": { "DI5": true, "DO5": false }, "step": 3 },
+    { "t": 18.8, "note": "Staubli clears DO4; PLC sets DI14 (pick the marker and draw)", "set": { "DI5": false, "DO7": true }, "step": 4 },
+    { "t": 24.0, "note": "Staubli DO7: square 1 drawn", "set": { "DI8": true } },
+    { "t": 24.3, "set": { "DI8": false } },
+    { "t": 28.0, "note": "Staubli DO7: square 2 drawn", "set": { "DI8": true } },
+    { "t": 28.3, "set": { "DI8": false } },
+    { "t": 30.5, "note": "Staubli DO5 done (marker stored); PLC clears DI14", "set": { "DI6": true, "DO7": false }, "step": 5 },
+    { "t": 30.8, "note": "Staubli clears DO5; cycle counted, PLC clears Ligar and the enables", "set": { "DI6": false, "DO2": false, "DO6": false }, "step": 0, "running": false, "countUp": true }
+  ]
+}

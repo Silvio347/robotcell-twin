@@ -43,6 +43,19 @@ export interface SegmentDef {
   learn?: boolean;
   /** The gripper closes (or opens) when the robot reaches `path[at]`. */
   grip?: { at: number; closed: boolean };
+  /** Keep the vertical axis where it is between poses (drawing at a fixed height). */
+  noLift?: boolean;
+  /** What the segment does with the cell objects; read by src/estimator/items.ts. */
+  meta?: SegmentMeta;
+}
+
+export type ItemId = 'plate' | 'marker' | 'part1' | 'part2';
+
+export interface SegmentMeta {
+  /** Object gripped or released at the grip point. */
+  item?: ItemId;
+  /** Index of the square drawn in this segment. */
+  square?: 0 | 1;
 }
 
 export interface TaskDef {
@@ -134,7 +147,7 @@ function smoothstep(t: number): number {
 export function stopReason(io: PlcIoSnapshot | null): string | null {
   if (!io) return 'No PLC data';
   if (isEmergencyActive(io)) return 'E-stop';
-  if (!level(io, RUNNING_SIGNAL)) return 'Cell stopped';
+  if (!level(io, RUNNING_SIGNAL)) return 'Idle';
   return null;
 }
 
@@ -186,7 +199,7 @@ function waypoints(task: TaskDef, s: EstimatorState): Waypoint[] {
   const points: Omit<Waypoint, 'at'>[] = [{ joints: s.startJoints, pathIndex: null }];
   seg?.path.forEach((pose, i) => {
     const from = points[points.length - 1]!.joints;
-    if (needsLift(task, from, pose)) {
+    if (!seg?.noLift && needsLift(task, from, pose)) {
       const lifted = [...from];
       lifted[task.travelAxis!.axis] = task.travelAxis!.safe;
       points.push({ joints: lifted, pathIndex: null });

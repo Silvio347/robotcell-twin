@@ -1,4 +1,6 @@
-// Publishes a fake cell cycle so the website can be developed without the PLC.
+// Publishes the whiteboard application cycle over MQTT so the website can be
+// developed without the PLC. Plays src/sim/timeline.json in a loop, the same
+// run as the in-browser demo, in the format the bridge publishes.
 //
 // Usage:
 //   MQTT_URL=mqtts://<cluster>.hivemq.cloud:8883 MQTT_USERNAME=... MQTT_PASSWORD=... npm run simulate
@@ -7,6 +9,7 @@
 // shows a SIMULATED badge. Do not run it while the real PLC/bridge is
 // publishing on the same prefix.
 
+import { readFileSync } from 'node:fs';
 import mqtt from 'mqtt';
 
 const url = process.env.MQTT_URL;
@@ -19,33 +22,36 @@ if (!url) {
   process.exit(1);
 }
 
+const timeline = JSON.parse(readFileSync(new URL('../src/sim/timeline.json', import.meta.url), 'utf8'));
+const RUN_MS = timeline.durationS * 1000;
+const CHANNELS = 12;
+
 const topics = {
   io: `${prefix}/plc/io`,
   status: `${prefix}/source/status`,
 };
 
-// Same cycle as the in-browser demo (src/sim/demo.ts), which follows NewProgram
-// in plc/ProjetoFinalRobotica. Keep both in sync. Only PLC I/O is published,
-// like the real bridge: the website estimates robot motion from it.
-// Channel numbers from Table I (1-based). Emergency (DI12) is TRUE while safe.
-const DI = { jakaDo7: 1, staubliSensor: 9, jakaSensor: 10, emergency: 12 };
-const DO = { jakaDi3: 1, jakaDi2: 2, staubliDi12: 5, staubliDi13: 6, convJakaToStaubli: 12 };
-
-// "Keep active" outputs held high for the whole cycle (Etapa 0).
-const HOLD = [DO.jakaDi2, DO.staubliDi13];
-
-const CYCLE = [
-  { ms: 4000, di: [], do: [DO.jakaDi3] }, // Etapa 0 -> 1: Jaka fetches a part
-  { ms: 800, di: [DI.jakaSensor], do: [DO.jakaDi3] }, // part on the conveyor
-  { ms: 500, di: [DI.jakaSensor, DI.jakaDo7], do: [DO.convJakaToStaubli] }, // Jaka done: PLC clears DI3, starts conveyor
-  { ms: 2500, di: [], do: [DO.convJakaToStaubli] }, // Etapa 2: part travelling
-  { ms: 1000, di: [DI.staubliSensor], do: [DO.staubliDi12] }, // Stäubli may pick (1 s pulse)
-  { ms: 1500, di: [DI.staubliSensor], do: [] }, // Stäubli picking, part leaves the sensor at the end
-];
-
-function channels(active, always = []) {
-  const set = new Set([...active, ...always]);
-  return Array.from({ length: 12 }, (_, i) => set.has(i + 1));
+/** I/O state `ms` into a run; same rules as src/sim/timeline.ts. */
+function stateAt(ms) {
+  const di = new Array(CHANNELS).fill(false);
+  const dout = new Array(CHANNELS).fill(false);
+  di[11] = true; // E-stop input TRUE = safe
+  let step = 0;
+  let running = false;
+  let countUps = 0;
+  for (const e of timeline.events) {
+    if (e.t * 1000 > ms) break;
+    for (const [name, value] of Object.entries(e.set ?? {})) {
+      if (name === 'DI12') continue;
+      const ch = Number(name.slice(2)) - 1;
+      if (name.startsWith('DI')) di[ch] = value;
+      else if (name.startsWith('DO')) dout[ch] = value;
+    }
+    if (e.step !== undefined) step = e.step;
+    if (e.running !== undefined) running = e.running;
+    if (e.countUp) countUps += 1;
+  }
+  return { di, do: dout, step, running, countUps };
 }
 
 const client = mqtt.connect(url, {
@@ -56,42 +62,29 @@ const client = mqtt.connect(url, {
   will: { topic: topics.status, payload: 'offline', retain: true, qos: 1 },
 });
 
-let step = 0;
-let timers = [];
+let timer = null;
+const startedAt = Date.now();
 
 client.on('connect', () => {
   console.log(`[sim] Connected to ${url}, publishing under ${prefix}/`);
   client.publish(topics.status, 'simulated', { retain: true, qos: 1 });
-  if (timers.length > 0) return; // reconnect: loops are already running
+  if (timer) return; // reconnect: loop is already running
 
-  const publishIo = () => {
-    const s = CYCLE[step];
-    const payload = { ts: Date.now(), di: channels(s.di, [DI.emergency]), do: channels(s.do, HOLD) };
+  // Same period as the PLC sender (TwinSender.st).
+  timer = setInterval(() => {
+    const elapsed = Date.now() - startedAt;
+    const run = Math.floor(elapsed / RUN_MS);
+    const s = stateAt(elapsed % RUN_MS);
+    const payload = { ts: Date.now(), di: s.di, do: s.do, step: s.step, count: (run + s.countUps) % 256, running: s.running };
     client.publish(topics.io, JSON.stringify(payload), { qos: 0 });
-  };
-
-  const nextStep = () => {
-    timers.push(
-      setTimeout(() => {
-        step = (step + 1) % CYCLE.length;
-        publishIo();
-        nextStep();
-      }, CYCLE[step].ms),
-    );
-  };
-  nextStep();
-
-  timers.push(setInterval(publishIo, 500));
+  }, 200);
 });
 
 client.on('error', (err) => console.error('[sim] MQTT error:', err.message));
 
 function shutdown() {
-  timers.forEach((t) => {
-    clearTimeout(t);
-    clearInterval(t);
-  });
-  timers = [];
+  if (timer) clearInterval(timer);
+  timer = null;
   client.publish(topics.status, 'offline', { retain: true, qos: 1 }, () => client.end(false, () => process.exit(0)));
   setTimeout(() => process.exit(0), 2000).unref();
 }

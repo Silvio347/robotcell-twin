@@ -1,13 +1,14 @@
 // Top view of the cell, drawn to scale from src/model/layout.ts (mm).
 // Arms come from forward kinematics of the joints (live when available,
-// otherwise estimated from the PLC), parts from the part estimator.
+// otherwise estimated from the PLC), plate, parts, marker and ink from the
+// item estimator.
 // Tool height is shown on a gauge next to each robot because a top view
 // cannot show it.
 
 import { useRobotView } from '../hooks/useRobotView';
 import { pointsOfRobot, type RobotId, type SignalId } from '../model/cell';
 import { jakaFk, SCARA, scaraFk } from '../model/kinematics';
-import { LAYOUT, toCellFrame, type ConveyorLayout, type Point2, type Point3 } from '../model/layout';
+import { LAYOUT, plateHole, toCellFrame, type ConveyorLayout, type Point2, type Point3 } from '../model/layout';
 import { isEmergencyActive, signalValue, type PlcIoSnapshot } from '../model/messages';
 import { useTwinStore } from '../state/store';
 
@@ -53,10 +54,42 @@ function Led({ x, y, value, label }: { x: number; y: number; value: boolean | nu
   );
 }
 
-function Part({ at, faded = false }: { at: Point2; faded?: boolean }) {
-  const size = LAYOUT.part.size * K;
+/** A standing part seen from above: the head with the body outline inside. */
+function Part({ at }: { at: Point2 }) {
   const p = sp(at);
-  return <rect x={p.x - size / 2} y={p.y - size / 2} width={size} height={size} rx={2} className={`svg-part ${faded ? 'is-faded' : ''}`} />;
+  return (
+    <g>
+      <circle cx={p.x} cy={p.y} r={(LAYOUT.part.headDiameter / 2) * K} className="svg-part" />
+      <circle cx={p.x} cy={p.y} r={(LAYOUT.part.bodyDiameter / 2) * K} className="svg-part-body" />
+    </g>
+  );
+}
+
+/** The plate seen from above, with its 3 holes. */
+function Plate({ at }: { at: Point2 }) {
+  const { length, width } = LAYOUT.plate;
+  const p = sp(at);
+  return (
+    <g>
+      <rect x={p.x - (length * K) / 2} y={p.y - (width * K) / 2} width={length * K} height={width * K} rx={3} className="svg-plate" />
+      {[0, 1, 2].map((h) => {
+        const c = sp(plateHole(at, h));
+        return <circle key={h} cx={c.x} cy={c.y} r={(LAYOUT.part.bodyDiameter / 2 + 1) * K} className="svg-plate-hole" />;
+      })}
+    </g>
+  );
+}
+
+/** The marker stands upright, so from above it is a circle. */
+function Marker({ at }: { at: Point2 }) {
+  const d = LAYOUT.marker.diameter * K;
+  const p = sp(at);
+  return (
+    <g>
+      <circle cx={p.x} cy={p.y} r={d / 2 + 1} className="svg-marker" />
+      <circle cx={p.x} cy={p.y} r={d / 4} className="svg-marker-tip" />
+    </g>
+  );
 }
 
 /** Tool position and drawing of one arm, in cell coordinates. */
@@ -161,34 +194,76 @@ function SignalPanel({ robot, io, x }: { robot: RobotId; io: PlcIoSnapshot | nul
   );
 }
 
-function lerp(a: Point2, b: Point2, t: number): Point2 {
+function Fixtures() {
+  const { board, boardSlots, jakaPlateStart, staubliPlateSpot, staubliMarkerHolder, squareHalf, plate } = LAYOUT;
+  const b = sp({ x: board.x - board.width / 2, y: board.y + board.depth / 2 });
+  const area = (at: Point2, w: number, h: number, label: string) => {
+    const p = sp(at);
+    return (
+      <g>
+        <rect x={p.x - (w * K) / 2} y={p.y - (h * K) / 2} width={w * K} height={h * K} className="svg-area" />
+        <text x={p.x} y={p.y + (h * K) / 2 + 11} textAnchor="middle" className="svg-small">
+          {label}
+        </text>
+      </g>
+    );
+  };
+  return (
+    <g>
+      <rect x={b.x} y={b.y} width={board.width * K} height={board.depth * K} rx={2} className="svg-board" />
+      <text x={b.x + (board.width * K) / 2} y={b.y - 5} textAnchor="middle" className="svg-small">
+        Whiteboard
+      </text>
+      {boardSlots.map((slot, i) => {
+        const c = sp({ x: slot.x - squareHalf, y: slot.y + squareHalf });
+        return <rect key={i} x={c.x} y={c.y} width={2 * squareHalf * K} height={2 * squareHalf * K} className="svg-square-guide" />;
+      })}
+      {area(jakaPlateStart, plate.length + 20, plate.width + 20, 'Plate (start)')}
+      {area(staubliPlateSpot, plate.length + 20, plate.width + 20, 'Plate spot')}
+      {area(staubliMarkerHolder, 50, 50, 'Marker holder')}
+    </g>
+  );
+}
+
+function lerpPoint(a: Point2, b: Point2, t: number): Point2 {
   return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
 }
 
-function Parts({ now }: { now: number }) {
-  const parts = useTwinStore((s) => s.parts);
+function Items({ now }: { now: number }) {
+  const items = useTwinStore((s) => s.items);
   const jaka = useRobotView('jaka', now);
   const staubli = useRobotView('staubli', now);
-  if (!parts) return null;
+  if (!items) return null;
   const belt = LAYOUT.conveyors.jakaToStaubli;
   const jakaTool = jaka.joints ? armGeometry('jaka', jaka.joints).tool : null;
   const staubliTool = staubli.joints ? armGeometry('staubli', staubli.joints).tool : null;
-  const jakaHolds = jaka.estimate?.holding === true;
-  const staubliHolds = staubli.estimate?.holding === true;
-  // Right after Sensor Jaka sees it, the part on the belt and the one in the
-  // Jaka gripper are the same part: draw it once, on the belt.
-  const jakaJustPlaced = parts.belt !== null && parts.belt < 0.1;
+
+  const plateAt: Point2 | null =
+    items.plate === 'jakaTable'
+      ? LAYOUT.jakaPlateStart
+      : items.plate === 'staubliTable'
+        ? LAYOUT.staubliPlateSpot
+        : items.plate === 'belt'
+          ? lerpPoint(belt.from, belt.to, items.belt)
+          : items.plate === 'jakaGripper'
+            ? jakaTool
+            : staubliTool;
+  const markerAt = items.marker === 'holder' ? LAYOUT.staubliMarkerHolder : staubliTool;
 
   return (
     <g>
-      {!jakaHolds && <Part at={LAYOUT.jakaSource} faded />}
-      {parts.placed > 0 && <Part at={LAYOUT.staubliDestination} />}
-      {parts.belt !== null && <Part at={lerp(belt.from, belt.to, parts.belt)} />}
-      {jakaHolds && jakaTool && !jakaJustPlaced && <Part at={jakaTool} />}
-      {staubliHolds && staubliTool && <Part at={staubliTool} />}
-      <text x={sx(LAYOUT.staubliDestination.x)} y={sy(LAYOUT.staubliDestination.y) - 22} textAnchor="middle" className="svg-small">
-        Placed: {parts.placed}
-      </text>
+      {items.ink.map((line, i) =>
+        line.length > 1 ? (
+          <polyline key={i} points={line.map((p) => `${sx(p.x)},${sy(p.y)}`).join(' ')} className="svg-ink" />
+        ) : null,
+      )}
+      {plateAt && <Plate at={plateAt} />}
+      {items.parts.map((place, i) => {
+        if (place === 'plate') return plateAt ? <Part key={i} at={plateHole(plateAt, LAYOUT.plate.partHoles[i]!)} /> : null;
+        if (place === 'board') return <Part key={i} at={LAYOUT.boardSlots[i]!} />;
+        return staubliTool ? <Part key={i} at={staubliTool} /> : null;
+      })}
+      {markerAt && <Marker at={markerAt} />}
     </g>
   );
 }
@@ -196,10 +271,6 @@ function Parts({ now }: { now: number }) {
 export function CellView2D({ io, stale, now }: { io: PlcIoSnapshot | null; stale: boolean; now: number }) {
   const data = stale ? null : io;
   const emergency = isEmergencyActive(data);
-  const source = sp(LAYOUT.jakaSource);
-  const dest = sp(LAYOUT.staubliDestination);
-  const fixture = 110 * K;
-
   return (
     <svg viewBox={`0 0 ${VIEW.w} ${VIEW.h}`} className="cell-view" role="img" aria-label="Robot cell, top view to scale">
       <rect x={1} y={1} width={VIEW.w - 2} height={VIEW.h - 2} rx={12} className={`svg-frame ${emergency ? 'is-emergency' : ''}`} />
@@ -241,19 +312,12 @@ export function CellView2D({ io, stale, now }: { io: PlcIoSnapshot | null; stale
         );
       })}
 
-      <rect x={source.x - fixture / 2} y={source.y - fixture / 2} width={fixture} height={fixture} className="svg-area" />
-      <text x={source.x} y={source.y + fixture / 2 + 12} textAnchor="middle" className="svg-small">
-        Part source
-      </text>
-      <rect x={dest.x - fixture / 2} y={dest.y - fixture / 2} width={fixture} height={fixture} className="svg-area" />
-      <text x={dest.x} y={dest.y + fixture / 2 + 12} textAnchor="middle" className="svg-small">
-        Destination
-      </text>
+      <Fixtures />
 
       <SignalPanel robot="staubli" io={data} x={8} />
       <SignalPanel robot="jaka" io={data} x={VIEW.w - PANEL + 8} />
 
-      <Parts now={now} />
+      <Items now={now} />
       <Robot robot="staubli" now={now} gaugeX={sx(-560)} />
       <Robot robot="jaka" now={now} gaugeX={sx(1960)} />
 
