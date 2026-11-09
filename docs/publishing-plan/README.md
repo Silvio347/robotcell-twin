@@ -23,7 +23,7 @@ checks that before anything changes in the PLC.
 |---|---|---|---|---|
 | 1 | [Network and broker check](01-network-and-broker.md) | No | To do in the lab | The simulator publishes from the lab and the website shows it |
 | 2 | [PLC UDP sender](02-plc-udp-sender.md) | Yes (new code, cycle unchanged) | Code ready, needs AsUDP added and a build in Automation Studio | The bridge sees 28-byte packets every 200 ms |
-| 3 | [Bridge PC](03-bridge.md) | No | Done (`bridge/bridge.py`), tested with a fake PLC | The website shows the real I/O while the cell runs |
+| 3 | [Bridge PC](03-bridge.md) | No | Done (`bridge/`), kit for the lab PC; to test there | The website shows the real I/O while the cell runs |
 | 4 | [Website deploy](04-website-deploy.md) | No | Ready | Public URL works from a phone |
 | 5 | [Optional: MQTT straight from the PLC](05-direct-mqtt-from-plc.md) | Yes (library + network config) | Not started | Bridge PC no longer needed |
 
