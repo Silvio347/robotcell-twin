@@ -1,6 +1,34 @@
 # Plan: 3D view
 
-Status: plan only, nothing implemented yet.
+Status: **level 0 implemented** (primitives), in `src/three/`. Open it with
+the **3D** tab of the cell panel.
+
+![3D overview](images/3d-overview.png)
+
+![Drawing a square](images/3d-whiteboard.png)
+
+*Demo mode, placeholder layout, poses and geometry.*
+
+What is in it:
+
+- React 19 + `three` + `@react-three/fiber` 9 + `@react-three/drei` 10,
+  lazy-loaded (the 3D chunk is only downloaded when the tab opens).
+- Stäubli TS60 as a SCARA hierarchy (column, arm 1, arm 2, quill, gripper)
+  and Jaka MiniCobo as its DH chain (links, joints, gripper), both driven
+  by the same joints as the top view.
+- Joints computed every frame from the estimator state (`src/three/frame.ts`),
+  so the motion is smooth at the display frame rate; live joints win when
+  fresh.
+- Table, both conveyors (belt texture moves while the output is on), belt
+  sensors that light up, whiteboard, plate stand, marker holder.
+- Plate with 3 holes carrying the two big-head parts, parts standing on the
+  board, marker, ink of the squares, gripper fingers sized to the held object.
+- Phase labels above the robots, camera presets (overview, Stäubli,
+  whiteboard, Jaka) and orbit controls, red frame on E-stop, grey overlay
+  when there is no live data.
+
+Not done yet: level 1 models (vendor CAD), the joint map table (needed once
+real poses are entered) and the Stäubli stand height.
 
 ## What already exists and is reused
 
@@ -152,17 +180,13 @@ the same way between messages.
 
 ## Steps (one PR each)
 
-1. `chore`: upgrade to React 19 (or decide to stay on R3F 8).
-2. `feat(estimator)`: expose estimator state for per-frame joints.
-3. `feat(3d)`: lazy-loaded 3D tab with frames, table, conveyors, sensors and camera presets.
-4. `feat(3d)`: level 0 robots from the kinematics, joint map table.
-5. `feat(3d)`: parts, gripper attachment, E-stop and stale states.
-6. `feat(3d)`: level 1 GLB models, once the models are confirmed.
-7. `docs`: README table and robot-estimation.md updates at each step.
-
-Steps 1–5 do not depend on the robot models. If the whiteboard application
-is adopted, adapt the twin to it in 2D first (it reuses everything and shows
-the ink in the top view), then build the 3D view on top.
+1. ~~`chore`: upgrade to React 19~~ done.
+2. ~~`feat(estimator)`: expose estimator state for per-frame joints~~ done.
+3. ~~`feat(3d)`: lazy-loaded 3D tab, table, conveyors, sensors, camera presets~~ done.
+4. ~~`feat(3d)`: level 0 robots from the kinematics~~ done. Joint map table: to do with the real poses.
+5. ~~`feat(3d)`: parts, marker, ink, gripper, E-stop and stale states~~ done.
+6. `feat(3d)`: level 1 GLB models, once the CAD files and their terms are confirmed.
+7. Calibration: layout, Stäubli stand height and camera matched to cell photos.
 
 ## Needed from the cell
 

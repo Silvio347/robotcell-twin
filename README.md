@@ -68,6 +68,13 @@ MQTT_USERNAME=<user> MQTT_PASSWORD=<pass> npm run simulate
 The website shows **Source: SIMULATED** while it runs. Do not run it while
 the real PLC/bridge publishes on the same prefix.
 
+## 3D view
+
+The cell panel has two tabs: **Top view** (2D, to scale, with the signal
+lists) and **3D**. The 3D view uses simple shapes built from the robot
+geometry and is loaded only when the tab is opened. Details:
+[docs/3d-plan.md](docs/3d-plan.md).
+
 ## Build and deploy
 
 ```bash

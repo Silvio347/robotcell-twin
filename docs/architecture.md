@@ -61,7 +61,8 @@ The website uses its own subscribe-only credential (see
 | `src/estimator/` | Robot phase, joints, gripper and part position estimated from PLC I/O |
 | `src/sim/demo.ts` | In-browser demo cycle (no broker) |
 | `src/state/store.ts` | App state (zustand) |
-| `src/components/` | 2D cell view, I/O table, joint panel, connect form, status bar |
+| `src/components/` | 2D cell view, cycle panel, I/O table, robot panel, connect form, status bar |
+| `src/three/` | 3D view (lazy-loaded): robots, cell, objects, per-frame joints |
 
 Data older than 5 s is shown as stale, so a frozen publisher is visible
 instead of showing old values as if they were live.

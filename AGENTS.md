@@ -18,6 +18,7 @@ Start with `docs/README.md` for the full picture.
 | `src/mqtt/` | Topics and the single broker connection (subscribe only) |
 | `src/sim/` | In-browser demo; `timeline.json` is one run of the PLC I/O, shared with the MQTT simulator |
 | `src/components/`, `src/hooks/` | UI |
+| `src/three/` | 3D view (React Three Fiber), lazy-loaded; reads the store with `getState()` inside `useFrame` |
 | `scripts/simulate.mjs` | MQTT simulator (same cycle as the demo) |
 | `bridge/` | Python UDP → MQTT bridge that runs on the PC connected to the PLC |
 | `plc/ProjetoFinalRobotica/` | Automation Studio 4.1 project, Automation Runtime E3.10 |
