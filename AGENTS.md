@@ -20,7 +20,7 @@ Start with `docs/README.md` for the full picture.
 | `src/components/`, `src/hooks/` | UI |
 | `src/three/` | 3D view (React Three Fiber), lazy-loaded; reads the store with `getState()` inside `useFrame` |
 | `scripts/simulate.mjs` | MQTT simulator (same cycle as the demo) |
-| `bridge/` | Python UDP → MQTT bridge that runs on the PC connected to the PLC |
+| `bridge/` | Python UDP → MQTT bridge (standard library only), fake PLC, and the kit for the lab PC (`make_kit.py`, `kit/`) |
 | `plc/ProjetoFinalRobotica/` | Automation Studio 4.1 project, Automation Runtime E3.10 |
 | `docs/` | Project docs, MQTT contract, publishing plan |
 
@@ -31,6 +31,7 @@ Start with `docs/README.md` for the full picture.
 - `npm run build`: type-check and production build. Must pass before every commit.
 - `npm run simulate`: publish fake cell data (needs `MQTT_URL`, see README).
 - `python bridge/bridge.py`: PLC UDP → MQTT bridge (see `docs/publishing-plan/03-bridge.md`).
+- `python3 bridge/make_kit.py`: build the lab PC kit into `bridge/dist/` (ignored by git).
 
 ## Code rules
 
@@ -48,7 +49,7 @@ Start with `docs/README.md` for the full picture.
     (the demo and `scripts/simulate.mjs` both play the JSON).
   - `src/model/cell.ts`, `IoMap.iom` and the table in `docs/mqtt-contract.md`.
   - Topics/payloads in code and `docs/mqtt-contract.md`.
-  - The UDP packet layout in `TwinSender.st`, `bridge/bridge.py` and
+  - The UDP packet layout in `TwinSender.st`, `bridge/bridge.py`, `bridge/fake_plc.py` and
     `docs/publishing-plan/02-plc-udp-sender.md`.
   - Signal events in `src/estimator/tasks.ts` and `docs/robot-estimation.md`.
   - The "What is real and what is simulated" table in `README.md` whenever a
