@@ -20,16 +20,26 @@ On your own machine:
 python3 bridge/make_kit.py
 ```
 
-This writes `bridge/dist/robotcell-bridge-kit.zip` (about 11 MB). The broker
-host comes from `.env.local`; the password is never stored. The zip is
-ignored by git because it contains the broker host.
+This writes `bridge/dist/robotcell-bridge-kit.zip` (about 11 MB). Settings
+come from `.env.local` (ignored by git):
+
+```
+VITE_MQTT_URL=wss://<cluster-id>.s1.eu.hivemq.cloud:8884/mqtt   # broker host
+BRIDGE_MQTT_USERNAME=<user>                                    # optional
+BRIDGE_MQTT_PASSWORD=<password>                                # optional; without it the kit asks
+```
+
+The zip is ignored by git and must not be shared: its `config.bat` holds the
+broker host and, if set, the credentials. It also ships the broker's root
+certificate (`isrg-root-x1.pem`, Let's Encrypt ISRG Root X1), so the lab
+PC's certificate store does not matter.
 
 Copy the zip to the lab PC (WhatsApp Web, e-mail, USB drive), unzip it
 anywhere and run the numbered scripts:
 
 | Script | Checks |
 |---|---|
-| `1-network-test.bat` | This PC's IPs, broker reachable on 8883, PLC reachable |
+| `1-network-test.bat` | This PC's IPs, broker reachable on 8883 (bridge) and 8884 (website), PLC reachable |
 | `2-python-test.bat` | The portable Python runs |
 | `3-broker-test.bat` | TLS connection, login and one publish (`--selftest`) |
 | `4-test-with-fake-plc.bat` | Whole path with `fake_plc.py` instead of the PLC |
@@ -79,7 +89,7 @@ bridge publishes `offline` and disconnects cleanly.
 | Broker port | `MQTT_PORT` | 8883 (TLS) |
 | User / password | `MQTT_USERNAME` / `MQTT_PASSWORD` | asked for |
 | Plain TCP, local test broker only | `MQTT_TLS=0` | TLS on |
-| CA file, if the system store does not trust the broker | `MQTT_CA_FILE` | system store |
+| CA file (the kit uses its `isrg-root-x1.pem`) | `MQTT_CA_FILE` | system store |
 | Topic prefix | `TOPIC_PREFIX` | `robotcell` |
 | UDP port | `UDP_PORT` | 5005 |
 | Accept packets only from | `PLC_IP` | any sender |
